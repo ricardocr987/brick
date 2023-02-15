@@ -1,11 +1,16 @@
 [features]
-seeds = false
-skip-lint = false
+seeds = true
+
 [programs.localnet]
-fishplace = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+fishplace = "AxDTdwnYddq8jZB2Xouons961sv3sHSRHZuvGDuoVU2G"
 
 [registry]
 url = "https://api.apr.dev"
+
+[test.validator]
+url = "https://api.devnet.solana.com"
+[[test.validator.clone]]
+address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
 
 [provider]
 cluster = "Localnet"
