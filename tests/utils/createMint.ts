@@ -1,9 +1,9 @@
-import { AnchorProvider, web3 } from '@project-serum/anchor';
+import { AnchorProvider, web3 } from "@project-serum/anchor";
 import {
   createInitializeMintInstruction,
   MintLayout,
   TOKEN_PROGRAM_ID,
-} from '@solana/spl-token';
+} from "@solana/spl-token";
 
 export const createMint = async (
   provider: AnchorProvider,

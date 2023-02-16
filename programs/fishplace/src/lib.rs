@@ -29,9 +29,9 @@ pub mod fishplace {
         master_edition_quantity: u32,
     ) -> Result<()> {
         (*ctx.accounts.master_edition).price = master_edition_price;
-        (*ctx.accounts.master_edition).quantity = master_edition_quantity; //-1 if unlimited, needs to be used in constraints
-        (*ctx.accounts.master_edition).sold = 0;// if master_edition.quantity != -1, needs to be in a constraint (in other ix
-        (*ctx.accounts.master_edition).used = 0;// if master_edition.quantity != -1, needs to be in a constraint (in other ix)
+        (*ctx.accounts.master_edition).quantity = master_edition_quantity; //0 if unlimited, needs to be used in constraints (cant be -1)
+        (*ctx.accounts.master_edition).sold = 0;// if master_edition.quantity != 0, needs to be in a constraint (in other ix)
+        (*ctx.accounts.master_edition).used = 0;// if master_edition.quantity != 0, needs to be in a constraint (in other ix)
         (*ctx.accounts.master_edition).bump = *ctx.bumps.get("master_edition").unwrap();
         (*ctx.accounts.master_edition).mint_bump = *ctx.bumps.get("master_edition_mint").unwrap();
         (*ctx.accounts.master_edition).metadata_bump = *ctx.bumps.get("master_edition_metadata").unwrap();
@@ -254,7 +254,7 @@ pub struct BuyDataSet<'info> {
         mut,
         constraint = buyer_vault.mint == data_set.mint
     )]
-    pub buyer_vault: Account<'info, TokenAccount>,
+    pub buyer_vault: Account<'info, TokenAccount>, // buyer token account to pay
     #[account(
         mut,
         constraint = seller_vault.mint == data_set.mint
@@ -274,7 +274,7 @@ pub struct BuyDataSet<'info> {
         mut,
         constraint = master_edition_vault.mint == master_edition_mint.key()
     )]
-    pub master_edition_vault: Box<Account<'info, TokenAccount>>, // buyer token account
+    pub master_edition_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store nft
 }
 
 #[derive(Accounts)]

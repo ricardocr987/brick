@@ -1,4 +1,4 @@
-import { AnchorProvider, web3 } from '@project-serum/anchor';
+import { AnchorProvider, web3 } from "@project-serum/anchor";
 
 export const createFundedWallet = async (
   provider: AnchorProvider,

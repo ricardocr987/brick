@@ -1,10 +1,10 @@
-import { AnchorProvider } from '@project-serum/anchor';
+import { AnchorProvider } from "@project-serum/anchor";
 import {
   createAssociatedTokenAccountInstruction,
   createMintToInstruction,
   getAssociatedTokenAddress,
-} from '@solana/spl-token';
-import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
+} from "@solana/spl-token";
+import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 
 export const createFundedAssociatedTokenAccount = async (
   provider: AnchorProvider,
