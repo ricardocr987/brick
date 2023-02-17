@@ -312,14 +312,14 @@ describe("fishplace", () => {
     assert.equal(masterEditionAccount.sold, masterEditionQuantity);
     assert.equal(masterEditionMintAccount.supply, BigInt(masterEditionQuantity));
 
-    // here is checked if the buyer is able to mint more nfts from the unit bought
+    // check if the buyer is able to mint more nfts from the unit bought
     try {
       await provider.sendAndConfirm(
         new anchor.web3.Transaction().add(
           createMintToInstruction(
             masterEditionMint,
-            dataSetPublicKey,
             buyerKeypair.publicKey,
+            dataSetPublicKey,
             1,
             [buyerKeypair.publicKey]
           ),
