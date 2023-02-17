@@ -1,5 +1,5 @@
 import * as anchor from "@project-serum/anchor";
-import { Program } from "@project-serum/anchor";
+import { Program, AnchorError } from "@project-serum/anchor";
 import { assert } from "chai";
 import { Fishplace } from "../target/types/fishplace";
 import {
@@ -13,6 +13,7 @@ import {
   getAccount,
   getAssociatedTokenAddress,
   getMint,
+  createMintToInstruction,
 } from "@solana/spl-token";
 import {
   createFundedWallet,
@@ -32,70 +33,19 @@ describe("fishplace", () => {
     .use(walletAdapterIdentity(provider.wallet))
     .use(bundlrStorage());
 
-  const dataSetBaseKeypair = anchor.web3.Keypair.generate();
-  let dataSetPublicKey: anchor.web3.PublicKey;
-  let acceptedMintPublicKey: anchor.web3.PublicKey;
-  let masterEditionPublicKey: anchor.web3.PublicKey;
-  let masterEditionMint: anchor.web3.PublicKey;
-
-  const sellerBalance = 2;
-  let sellerKeypair: anchor.web3.Keypair;
-  let sellerTokenAccountToBePaidPublicKey: anchor.web3.PublicKey;
-  const buyerBalance = 5;
-  let buyerKeypair: anchor.web3.Keypair;
-  let buyerAssociatedTokenToPayPublicKey: anchor.web3.PublicKey;
-  let buyerAssociatedTokenMasterEditionPublicKey: anchor.web3.PublicKey;
-
-  before(async () => {
-    // Program accounts: (program creates dataSet & masterEdition accounts (metaplex accounts apart))
-    [dataSetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+  it("Create data set account:", async () => {
+    const title = "Solana whales time series";
+    const sellerKeypair = await createFundedWallet(provider, 20);
+    const dataSetBaseKeypair = anchor.web3.Keypair.generate();
+    const acceptedMintPublicKey = await createMint(provider);
+    const [dataSetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("data_set", "utf-8"),
         dataSetBaseKeypair.publicKey.toBuffer(),
       ],
       program.programId
     );
-    acceptedMintPublicKey = await createMint(provider);
-    [masterEditionPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("master_edition", "utf-8"), dataSetPublicKey.toBuffer()],
-      program.programId
-    );
-    [masterEditionMint] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("master_edition_mint", "utf-8"),
-        dataSetPublicKey.toBuffer(),
-        masterEditionPublicKey.toBuffer(),
-      ],
-      program.programId
-    );
-    // Seller token account to receive funds
-    sellerKeypair = await createFundedWallet(provider);
-    sellerTokenAccountToBePaidPublicKey =
-      await createFundedAssociatedTokenAccount(
-        provider,
-        acceptedMintPublicKey,
-        sellerBalance,
-        sellerKeypair
-      );
 
-    // Buyer wallet & ata's:
-    buyerKeypair = await createFundedWallet(provider);
-    buyerAssociatedTokenToPayPublicKey =
-      await createFundedAssociatedTokenAccount(
-        provider,
-        acceptedMintPublicKey,
-        buyerBalance,
-        buyerKeypair
-      );
-    buyerAssociatedTokenMasterEditionPublicKey =
-      await getAssociatedTokenAddress(
-        masterEditionMint,
-        buyerKeypair.publicKey
-      );
-  });
-
-  it("Create data set account:", async () => {
-    const title = "Solana whales time series";
     const tx = await program.methods
       .createDataSet(title)
       .accounts({
@@ -122,7 +72,41 @@ describe("fishplace", () => {
     const masterEditionSymbol = "SOL";
     const masterEditionUri = "https://aleph.im/876jkfbnewjdfjn";
     const masterEditionPrice = 1;
-    const masterEditionQuantity = 0;
+    const masterEditionQuantity = 0; // if 0 unlimited dataset nfts can be minted
+    const sellerKeypair = await createFundedWallet(provider, 20);
+    const dataSetBaseKeypair = anchor.web3.Keypair.generate();
+    const [dataSetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("data_set", "utf-8"),
+        dataSetBaseKeypair.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    const acceptedMintPublicKey = await createMint(provider);
+    const [masterEditionPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("master_edition", "utf-8"), dataSetPublicKey.toBuffer()],
+      program.programId
+    );
+    const [masterEditionMint] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("master_edition_mint", "utf-8"),
+        dataSetPublicKey.toBuffer(),
+        masterEditionPublicKey.toBuffer(),
+      ],
+      program.programId
+    );
+
+    await program.methods
+      .createDataSet("DataSet title")
+      .accounts({
+        authority: sellerKeypair.publicKey,
+        dataSetBase: dataSetBaseKeypair.publicKey,
+        mint: acceptedMintPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc();
 
     const tx = await program.methods
       .createMasterEdition(
@@ -158,8 +142,8 @@ describe("fishplace", () => {
     assert.isDefined(masterEditionAccount);
     assert.equal(masterEditionAccount.price, masterEditionPrice);
     assert.equal(masterEditionAccount.quantity, masterEditionQuantity);
+    assert.equal(masterEditionAccount.unlimitedQuantity, true);
     assert.equal(masterEditionAccount.sold, 0);
-    assert.isDefined(masterEditionMintAccount);
     assert.equal(masterEditionMintAccount.decimals, 0);
     assert.equal(masterEditionMintAccount.supply, BigInt(0));
 
@@ -175,7 +159,260 @@ describe("fishplace", () => {
     }
   });
 
-  it("Buys data set master edition copy:", async () => {
+  it("Create a master edition to mint limited editions and buy all:", async () => {
+    const masterEditionName = "Solana whales time series";
+    const masterEditionSymbol = "SOL";
+    const masterEditionUri = "https://aleph.im/876jkfbnewjdfjn";
+    const masterEditionPrice = 1;
+    const masterEditionQuantity = 2;
+    const dataSetBaseKeypair = anchor.web3.Keypair.generate();
+    const [dataSetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("data_set", "utf-8"),
+        dataSetBaseKeypair.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    const acceptedMintPublicKey = await createMint(provider);
+    const [masterEditionPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("master_edition", "utf-8"), dataSetPublicKey.toBuffer()],
+      program.programId
+    );
+    const [masterEditionMint] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("master_edition_mint", "utf-8"),
+        dataSetPublicKey.toBuffer(),
+        masterEditionPublicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    const buyerKeypair = await createFundedWallet(provider, 20);
+    const buyerBalance = 5;
+    const buyerAssociatedTokenToPayPublicKey =
+      await createFundedAssociatedTokenAccount(
+        provider,
+        acceptedMintPublicKey,
+        buyerBalance,
+        buyerKeypair
+      );
+    const buyerAssociatedTokenMasterEditionPublicKey =
+      await getAssociatedTokenAddress(
+        masterEditionMint,
+        buyerKeypair.publicKey
+      );
+    const sellerKeypair = await createFundedWallet(provider, 20);
+    const sellerBalance = 2
+    const sellerTokenAccountToBePaidPublicKey =
+      await createFundedAssociatedTokenAccount(
+        provider,
+        acceptedMintPublicKey,
+        sellerBalance,
+        sellerKeypair
+      );
+
+    await program.methods
+      .createDataSet("DataSet title")
+      .accounts({
+        authority: sellerKeypair.publicKey,
+        dataSetBase: dataSetBaseKeypair.publicKey,
+        mint: acceptedMintPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc();
+
+    await program.methods
+      .createMasterEdition(
+        masterEditionName,
+        masterEditionSymbol,
+        masterEditionUri,
+        masterEditionPrice,
+        masterEditionQuantity
+      )
+      .accounts({
+        metadataProgram: metadataProgramPublicKey,
+        authority: sellerKeypair.publicKey,
+        dataSetBase: dataSetBaseKeypair.publicKey,
+        dataSet: dataSetPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc();
+
+    const preMasterEditionAccount = await program.account.masterEdition.fetch(
+      masterEditionPublicKey
+    );
+    const preMasterEditionMintAccount = await getMint(
+      provider.connection,
+      masterEditionMint
+    );
+    const metaplexNft = await metaplex
+      .nfts()
+      .findByMint({ mintAddress: masterEditionMint });
+
+    assert.isDefined(preMasterEditionAccount);
+    assert.equal(preMasterEditionAccount.price, masterEditionPrice);
+    assert.equal(preMasterEditionAccount.quantity, masterEditionQuantity);
+    assert.equal(preMasterEditionAccount.unlimitedQuantity, false);
+    assert.equal(preMasterEditionAccount.sold, 0);
+    assert.equal(preMasterEditionMintAccount.decimals, 0);
+    assert.equal(preMasterEditionMintAccount.supply, BigInt(0));
+
+    assert.isDefined(metaplexNft);
+    if (isNft(metaplexNft)) {
+      assert.equal(metaplexNft.updateAuthorityAddress, dataSetPublicKey);
+      assert.equal(metaplexNft.mint.address, masterEditionMint);
+      assert.equal(metaplexNft.mint.decimals, 0);
+      assert.isTrue(metaplexNft.mint.supply.basisPoints.eq(new anchor.BN(0)));
+      assert.equal(metaplexNft.json.name, masterEditionName);
+      assert.equal(metaplexNft.json.symbol, masterEditionSymbol);
+      assert.equal(metaplexNft.json.uri, masterEditionUri);
+    }
+
+    // initilizes buyer token account to store the nft copy
+    await provider.sendAndConfirm(
+      new anchor.web3.Transaction().add(
+        createAssociatedTokenAccountInstruction(
+          provider.wallet.publicKey,
+          buyerAssociatedTokenMasterEditionPublicKey,
+          buyerKeypair.publicKey,
+          masterEditionMint
+        )
+      )
+    );
+
+    await program.methods
+      .buyDataSet(masterEditionQuantity)
+      .accounts({
+        authority: buyerKeypair.publicKey,
+        dataSetBase: dataSetBaseKeypair.publicKey,
+        dataSet: dataSetPublicKey,
+        masterEdition: masterEditionPublicKey,
+        buyerVault: buyerAssociatedTokenToPayPublicKey,
+        sellerVault: sellerTokenAccountToBePaidPublicKey,
+        masterEditionMint: masterEditionMint,
+        masterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
+      })
+      .signers(
+        buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+      )
+      .rpc();
+
+    const masterEditionAccount = await program.account.masterEdition.fetch(
+      masterEditionPublicKey
+    );
+    const masterEditionMintAccount = await getMint(
+      provider.connection,
+      masterEditionMint
+    );
+
+    assert.isDefined(masterEditionAccount);
+    assert.equal(masterEditionAccount.sold, masterEditionQuantity);
+    assert.equal(masterEditionMintAccount.supply, BigInt(masterEditionQuantity));
+
+    // here is checked if the buyer is able to mint more nfts from the unit bought
+    try {
+      await provider.sendAndConfirm(
+        new anchor.web3.Transaction().add(
+          createMintToInstruction(
+            masterEditionMint,
+            dataSetPublicKey,
+            buyerKeypair.publicKey,
+            1,
+            [buyerKeypair.publicKey]
+          ),
+        )
+      );
+    }
+    catch(e) {
+      if (e as AnchorError) assert.equal(e, "Error: Signature verification failed")
+    }
+  });
+
+  it("Create and buy 2 data set master edition copies in the same ix from an unlimited mint:", async () => {
+    const masterEditionName = "Solana whales time series";
+    const masterEditionSymbol = "SOL";
+    const masterEditionUri = "https://aleph.im/876jkfbnewjdfjn";
+    const masterEditionPrice = 1;
+    const masterEditionQuantity = 2; // if 0 unlimited dataset nfts can be minted
+    const sellerKeypair = await createFundedWallet(provider, 20);
+    const dataSetBaseKeypair = anchor.web3.Keypair.generate();
+    const [dataSetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("data_set", "utf-8"),
+        dataSetBaseKeypair.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    const acceptedMintPublicKey = await createMint(provider);
+    const [masterEditionPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("master_edition", "utf-8"), dataSetPublicKey.toBuffer()],
+      program.programId
+    );
+    const [masterEditionMint] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("master_edition_mint", "utf-8"),
+        dataSetPublicKey.toBuffer(),
+        masterEditionPublicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    const buyerKeypair = await createFundedWallet(provider, 20);
+    const buyerBalance = 5;
+    const buyerAssociatedTokenToPayPublicKey =
+      await createFundedAssociatedTokenAccount(
+        provider,
+        acceptedMintPublicKey,
+        buyerBalance,
+        buyerKeypair
+      );
+    const buyerAssociatedTokenMasterEditionPublicKey =
+      await getAssociatedTokenAddress(
+        masterEditionMint,
+        buyerKeypair.publicKey
+      );
+    const sellerBalance = 2
+    const sellerTokenAccountToBePaidPublicKey =
+      await createFundedAssociatedTokenAccount(
+        provider,
+        acceptedMintPublicKey,
+        sellerBalance,
+        sellerKeypair
+      );
+    
+    await program.methods
+      .createDataSet("DataSet title")
+      .accounts({
+        authority: sellerKeypair.publicKey,
+        dataSetBase: dataSetBaseKeypair.publicKey,
+        mint: acceptedMintPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc();
+
+    await program.methods
+      .createMasterEdition(
+        masterEditionName,
+        masterEditionSymbol,
+        masterEditionUri,
+        masterEditionPrice,
+        masterEditionQuantity
+      )
+      .accounts({
+        metadataProgram: metadataProgramPublicKey,
+        authority: sellerKeypair.publicKey,
+        dataSetBase: dataSetBaseKeypair.publicKey,
+        dataSet: dataSetPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc();
+
     const preTxBuyerFunds = await getAccount(
       provider.connection,
       buyerAssociatedTokenToPayPublicKey
@@ -198,7 +435,7 @@ describe("fishplace", () => {
     );
 
     const tx = await program.methods
-      .buyDataSet()
+      .buyDataSet(masterEditionQuantity)
       .accounts({
         authority: buyerKeypair.publicKey,
         dataSetBase: dataSetBaseKeypair.publicKey,
@@ -237,19 +474,19 @@ describe("fishplace", () => {
     assert.isDefined(postTxBuyerFunds);
     assert.equal(
       postTxBuyerFunds.amount,
-      preTxBuyerFunds.amount - BigInt(masterEditionAccount.price)
+      preTxBuyerFunds.amount - BigInt(masterEditionAccount.price * masterEditionQuantity)
     );
     // Assert seller token account changed
     assert.isDefined(preTxSellerFunds);
     assert.isDefined(postTxSellerFunds);
     assert.equal(
       postTxSellerFunds.amount,
-      preTxSellerFunds.amount + BigInt(masterEditionAccount.price)
+      preTxSellerFunds.amount + BigInt(masterEditionAccount.price * masterEditionQuantity)
     );
     // Assert master edition account values changed
     assert.isDefined(buyerAssociatedTokenMasterEditionPublicKey);
-    assert.equal(sellerMasterEditionAccount.amount, BigInt(1));
+    assert.equal(sellerMasterEditionAccount.amount, BigInt(masterEditionQuantity));
     assert.isDefined(nftMint);
-    assert.equal(nftMint.supply, BigInt(1));
+    assert.equal(nftMint.supply, BigInt(masterEditionQuantity));
   });
 });

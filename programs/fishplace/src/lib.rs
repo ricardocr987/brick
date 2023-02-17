@@ -29,12 +29,18 @@ pub mod fishplace {
         master_edition_quantity: u32,
     ) -> Result<()> {
         (*ctx.accounts.master_edition).price = master_edition_price;
-        (*ctx.accounts.master_edition).quantity = master_edition_quantity; //0 if unlimited, needs to be used in constraints (cant be -1)
-        (*ctx.accounts.master_edition).sold = 0;// if master_edition.quantity != 0, needs to be in a constraint (in other ix)
-        (*ctx.accounts.master_edition).used = 0;// if master_edition.quantity != 0, needs to be in a constraint (in other ix)
+        (*ctx.accounts.master_edition).quantity = master_edition_quantity;
+        (*ctx.accounts.master_edition).sold = 0;
+        (*ctx.accounts.master_edition).used = 0;
         (*ctx.accounts.master_edition).bump = *ctx.bumps.get("master_edition").unwrap();
         (*ctx.accounts.master_edition).mint_bump = *ctx.bumps.get("master_edition_mint").unwrap();
         (*ctx.accounts.master_edition).metadata_bump = *ctx.bumps.get("master_edition_metadata").unwrap();
+
+        if master_edition_quantity == 0 {
+            (*ctx.accounts.master_edition).unlimited_quantity = true;
+        } else {
+            (*ctx.accounts.master_edition).unlimited_quantity = false;
+        }
 
         let seeds = &[
             b"data_set".as_ref(),
@@ -77,8 +83,15 @@ pub mod fishplace {
         Ok(())
     }
 
-    pub fn buy_data_set(ctx: Context<BuyDataSet>) -> Result<()> {
-        (*ctx.accounts.master_edition).sold += 1;
+    pub fn buy_data_set(ctx: Context<BuyDataSet>, quantity: u32) -> Result<()> {
+        if 
+            (*ctx.accounts.master_edition).unlimited_quantity == false && 
+            (*ctx.accounts.master_edition).quantity < (*ctx.accounts.master_edition).sold + quantity
+        {
+            return Err(ErrorCode::NotEnoughMintsAvailable.into());
+        }
+
+        (*ctx.accounts.master_edition).sold += quantity;
 
         let seeds = &[
             b"data_set".as_ref(),
@@ -99,7 +112,7 @@ pub mod fishplace {
             ctx.accounts
                 .master_edition
                 .price
-                .checked_mul(1)
+                .checked_mul(quantity.into())
                 .unwrap()
                 .into(),
         )?;
@@ -115,14 +128,14 @@ pub mod fishplace {
                 },
                 &[&seeds[..]],
             ),
-            1, // quantity
+            quantity.into()
         )?;
 
         Ok(())
     }
 
-    pub fn use_data_set(ctx: Context<UseDataSet>) -> Result<()> {
-        (*ctx.accounts.master_edition).used += 1;
+    pub fn use_data_set(ctx: Context<UseDataSet>, quantity: u32) -> Result<()> {
+        (*ctx.accounts.master_edition).used += quantity;
 
         burn(
             CpiContext::new(
@@ -133,7 +146,7 @@ pub mod fishplace {
                     mint: ctx.accounts.master_edition_mint.to_account_info(),
                 },
             ),
-            1, // quantity
+            quantity.into(),
         )?;
 
         Ok(())
@@ -148,7 +161,8 @@ pub struct CreateDataSet<'info> {
     pub rent: Sysvar<'info, Rent>,
     #[account(mut)]
     pub authority: Signer<'info>,
-    /// CHECK: This is used only for generating the PDA. As we need to create multiple datasets accounts, we need another key apart from b"data_set".as_ref(), ie: it is a random address to create multiple PDAs
+    /// CHECK: This is used only for generating the PDA. As we need to create multiple datasets accounts, 
+    /// we need another key apart from b"data_set".as_ref(), ie: it is a random address to create multiple PDAs
     pub data_set_base: UncheckedAccount<'info>,
     #[account(
         init,
@@ -166,7 +180,10 @@ pub struct CreateDataSet<'info> {
 
 #[derive(Accounts)]
 pub struct CreateMasterEdition<'info> {
-    /// CHECK: This needs a contraint to be safe
+    /// CHECK: contraint added to force using actual metaplex metadata program
+    #[account(
+        constraint = metadata_program.key() == mpl_token_metadata::ID @ ErrorCode::ProvidingWrongMetadataProgram
+    )]
     pub metadata_program: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -222,7 +239,6 @@ pub struct CreateMasterEdition<'info> {
 }
 
 #[derive(Accounts)]
-//#[instruction(quantity: u32)]
 pub struct BuyDataSet<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -247,17 +263,16 @@ pub struct BuyDataSet<'info> {
             data_set.key().as_ref(),
         ],
         bump = master_edition.bump,
-        //constraint = master_edition.quantity >= master_edition.sold + quantity @ ErrorCode::NotEnoughMintsAvailable
     )]
     pub master_edition: Account<'info, MasterEdition>,
     #[account(
         mut,
-        constraint = buyer_vault.mint == data_set.mint
+        constraint = buyer_vault.mint == data_set.mint @ ErrorCode::WrongBuyerMintProvided
     )]
     pub buyer_vault: Account<'info, TokenAccount>, // buyer token account to pay
     #[account(
         mut,
-        constraint = seller_vault.mint == data_set.mint
+        constraint = seller_vault.mint == data_set.mint @ ErrorCode::WrongSellerMintProvided
     )]
     pub seller_vault: Account<'info, TokenAccount>,
     #[account(
@@ -272,13 +287,12 @@ pub struct BuyDataSet<'info> {
     pub master_edition_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = master_edition_vault.mint == master_edition_mint.key()
+        constraint = master_edition_vault.mint == master_edition_mint.key() @ ErrorCode::WrongMasterEditionTokenAccount
     )]
     pub master_edition_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store nft
 }
 
 #[derive(Accounts)]
-//#[instruction(quantity: u32)]
 pub struct UseDataSet<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -303,7 +317,7 @@ pub struct UseDataSet<'info> {
             data_set.key().as_ref(),
         ],
         bump = master_edition.bump,
-        //constraint = master_edition.sold - master_edition.used >= quantity @ ErrorCode::NotEnoughTicketsToCheckIn
+        constraint = master_edition_vault.owner == authority.key() @ ErrorCode::WrongOwnerOfTheNFT
     )]
     pub master_edition: Account<'info, MasterEdition>,
     #[account(
@@ -318,14 +332,14 @@ pub struct UseDataSet<'info> {
     pub master_edition_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = master_edition_vault.mint == master_edition_mint.key()
+        constraint = master_edition_vault.mint == master_edition_mint.key() @ ErrorCode::WrongMasterEditionTokenAccount
     )]
     pub master_edition_vault: Box<Account<'info, TokenAccount>>,
 }
 
 #[account]
 pub struct DataSet {
-    pub title: String,
+    pub title: String, // limited to 32 bits
     pub mint: Pubkey,
     pub authority: Pubkey,
     pub bump: u8,
@@ -341,21 +355,30 @@ pub struct MasterEdition {
     pub quantity: u32,
     pub sold: u32,
     pub used: u32,
+    pub unlimited_quantity: bool,
     pub bump: u8,
     pub mint_bump: u8,
     pub metadata_bump: u8,
 }
 
 impl MasterEdition {
-    pub const SIZE: usize = 8 + 4 + 4 + 4 + 4 + 1 + 1 + 1;
+    pub const SIZE: usize = 8 + 4 + 4 + 4 + 4  + 1 + 1 + 1 + 1;
 }
 
 #[error_code]
 pub enum ErrorCode {
-    #[msg("This NFT is already used")]
-    NFTAlreadyUsed,
-    #[msg("There are not enough NFTs to buyv.")]
-    NotEnoughMintsAvailable
+    #[msg("There are not enough NFTs to buy.")]
+    NotEnoughMintsAvailable,
+    #[msg("You are providing a wrong metadata program.")]
+    ProvidingWrongMetadataProgram,
+    #[msg("You are providing a wrong seller mint")]
+    WrongSellerMintProvided,
+    #[msg("You are providing a wrong buyer mint.")]
+    WrongBuyerMintProvided,
+    #[msg("You are providing a wrong token account where the dataset NFT is stored.")]
+    WrongMasterEditionTokenAccount,
+    #[msg("You are trying to use an NFT that you don't own.")]
+    WrongOwnerOfTheNFT,
 }
 
 

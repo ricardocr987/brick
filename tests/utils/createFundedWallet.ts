@@ -2,7 +2,7 @@ import { AnchorProvider, web3 } from "@project-serum/anchor";
 
 export const createFundedWallet = async (
   provider: AnchorProvider,
-  amount = 5
+  amount: number,
 ): Promise<web3.Keypair> => {
   const user = new web3.Keypair();
 
