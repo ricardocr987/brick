@@ -11,15 +11,10 @@ import {
 import {
   createAssociatedTokenAccountInstruction,
   getAccount,
-  getAssociatedTokenAddress,
   getMint,
   createMintToInstruction,
 } from "@solana/spl-token";
-import {
-  createFundedWallet,
-  createMint,
-  createFundedAssociatedTokenAccount,
-} from "./utils";
+import { initNewAccounts } from "./utils";
 
 describe("fishplace", () => {
   const provider = anchor.AnchorProvider.env();
@@ -33,21 +28,21 @@ describe("fishplace", () => {
     .use(walletAdapterIdentity(provider.wallet))
     .use(bundlrStorage());
 
+  const dataSetTitle = "Solana whales time series";
+  const masterEditionName = "Solana whales time series";
+  const masterEditionSymbol = "SOL";
+  const masterEditionUri = "https://aleph.im/876jkfbnewjdfjn";
+
   it("Create data set account:", async () => {
-    const title = "Solana whales time series";
-    const sellerKeypair = await createFundedWallet(provider, 20);
-    const dataSetBaseKeypair = anchor.web3.Keypair.generate();
-    const acceptedMintPublicKey = await createMint(provider);
-    const [dataSetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("data_set", "utf-8"),
-        dataSetBaseKeypair.publicKey.toBuffer(),
-      ],
-      program.programId
-    );
+    const {
+      sellerKeypair,
+      dataSetBaseKeypair,
+      acceptedMintPublicKey,
+      dataSetPublicKey,
+    } = await initNewAccounts(provider, program);
 
     const tx = await program.methods
-      .createDataSet(title)
+      .createDataSet(dataSetTitle)
       .accounts({
         authority: sellerKeypair.publicKey,
         dataSetBase: dataSetBaseKeypair.publicKey,
@@ -63,41 +58,24 @@ describe("fishplace", () => {
 
     assert.isDefined(tx);
     assert.isDefined(dataSetAccount);
-    assert.equal(dataSetAccount.title, title);
+    assert.equal(dataSetAccount.title, dataSetTitle);
     assert.isTrue(dataSetAccount.authority.equals(sellerKeypair.publicKey));
   });
 
   it("Create a master edition to mint unlimited editions:", async () => {
-    const masterEditionName = "Solana whales time series";
-    const masterEditionSymbol = "SOL";
-    const masterEditionUri = "https://aleph.im/876jkfbnewjdfjn";
     const masterEditionPrice = 1;
     const masterEditionQuantity = 0; // if 0 unlimited dataset nfts can be minted
-    const sellerKeypair = await createFundedWallet(provider, 20);
-    const dataSetBaseKeypair = anchor.web3.Keypair.generate();
-    const [dataSetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("data_set", "utf-8"),
-        dataSetBaseKeypair.publicKey.toBuffer(),
-      ],
-      program.programId
-    );
-    const acceptedMintPublicKey = await createMint(provider);
-    const [masterEditionPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("master_edition", "utf-8"), dataSetPublicKey.toBuffer()],
-      program.programId
-    );
-    const [masterEditionMint] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("master_edition_mint", "utf-8"),
-        dataSetPublicKey.toBuffer(),
-        masterEditionPublicKey.toBuffer(),
-      ],
-      program.programId
-    );
+    const {
+      sellerKeypair,
+      dataSetBaseKeypair,
+      acceptedMintPublicKey,
+      dataSetPublicKey,
+      masterEditionPublicKey,
+      masterEditionMint,
+    } = await initNewAccounts(provider, program);
 
     await program.methods
-      .createDataSet("DataSet title")
+      .createDataSet(dataSetTitle)
       .accounts({
         authority: sellerKeypair.publicKey,
         dataSetBase: dataSetBaseKeypair.publicKey,
@@ -160,58 +138,27 @@ describe("fishplace", () => {
   });
 
   it("Create a master edition to mint limited editions and buy all:", async () => {
-    const masterEditionName = "Solana whales time series";
-    const masterEditionSymbol = "SOL";
-    const masterEditionUri = "https://aleph.im/876jkfbnewjdfjn";
     const masterEditionPrice = 1;
     const masterEditionQuantity = 2;
-    const dataSetBaseKeypair = anchor.web3.Keypair.generate();
-    const [dataSetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("data_set", "utf-8"),
-        dataSetBaseKeypair.publicKey.toBuffer(),
-      ],
-      program.programId
-    );
-    const acceptedMintPublicKey = await createMint(provider);
-    const [masterEditionPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("master_edition", "utf-8"), dataSetPublicKey.toBuffer()],
-      program.programId
-    );
-    const [masterEditionMint] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("master_edition_mint", "utf-8"),
-        dataSetPublicKey.toBuffer(),
-        masterEditionPublicKey.toBuffer(),
-      ],
-      program.programId
-    );
-    const buyerKeypair = await createFundedWallet(provider, 20);
+
     const buyerBalance = 5;
-    const buyerAssociatedTokenToPayPublicKey =
-      await createFundedAssociatedTokenAccount(
-        provider,
-        acceptedMintPublicKey,
-        buyerBalance,
-        buyerKeypair
-      );
-    const buyerAssociatedTokenMasterEditionPublicKey =
-      await getAssociatedTokenAddress(
-        masterEditionMint,
-        buyerKeypair.publicKey
-      );
-    const sellerKeypair = await createFundedWallet(provider, 20);
-    const sellerBalance = 2
-    const sellerTokenAccountToBePaidPublicKey =
-      await createFundedAssociatedTokenAccount(
-        provider,
-        acceptedMintPublicKey,
-        sellerBalance,
-        sellerKeypair
-      );
+    const sellerBalance = 2;
+
+    const {
+      sellerKeypair,
+      dataSetBaseKeypair,
+      acceptedMintPublicKey,
+      dataSetPublicKey,
+      masterEditionPublicKey,
+      masterEditionMint,
+      buyerKeypair,
+      buyerAssociatedTokenToPayPublicKey,
+      buyerAssociatedTokenMasterEditionPublicKey,
+      sellerTokenAccountToBePaidPublicKey,
+    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
 
     await program.methods
-      .createDataSet("DataSet title")
+      .createDataSet(dataSetTitle)
       .accounts({
         authority: sellerKeypair.publicKey,
         dataSetBase: dataSetBaseKeypair.publicKey,
@@ -241,6 +188,7 @@ describe("fishplace", () => {
       )
       .rpc();
 
+    // preTx info
     const preMasterEditionAccount = await program.account.masterEdition.fetch(
       masterEditionPublicKey
     );
@@ -300,6 +248,7 @@ describe("fishplace", () => {
       )
       .rpc();
 
+    // postTxInfo
     const masterEditionAccount = await program.account.masterEdition.fetch(
       masterEditionPublicKey
     );
@@ -310,7 +259,10 @@ describe("fishplace", () => {
 
     assert.isDefined(masterEditionAccount);
     assert.equal(masterEditionAccount.sold, masterEditionQuantity);
-    assert.equal(masterEditionMintAccount.supply, BigInt(masterEditionQuantity));
+    assert.equal(
+      masterEditionMintAccount.supply,
+      BigInt(masterEditionQuantity)
+    );
 
     // check if the buyer is able to mint more nfts from the unit bought
     try {
@@ -322,68 +274,37 @@ describe("fishplace", () => {
             dataSetPublicKey,
             1,
             [buyerKeypair.publicKey]
-          ),
+          )
         )
       );
-    }
-    catch(e) {
-      if (e as AnchorError) assert.equal(e, "Error: Signature verification failed")
+    } catch (e) {
+      if (e as AnchorError)
+        assert.equal(e, "Error: Signature verification failed");
     }
   });
 
   it("Create and buy 2 data set master edition copies in the same ix from an unlimited mint:", async () => {
-    const masterEditionName = "Solana whales time series";
-    const masterEditionSymbol = "SOL";
-    const masterEditionUri = "https://aleph.im/876jkfbnewjdfjn";
     const masterEditionPrice = 1;
     const masterEditionQuantity = 2; // if 0 unlimited dataset nfts can be minted
-    const sellerKeypair = await createFundedWallet(provider, 20);
-    const dataSetBaseKeypair = anchor.web3.Keypair.generate();
-    const [dataSetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("data_set", "utf-8"),
-        dataSetBaseKeypair.publicKey.toBuffer(),
-      ],
-      program.programId
-    );
-    const acceptedMintPublicKey = await createMint(provider);
-    const [masterEditionPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("master_edition", "utf-8"), dataSetPublicKey.toBuffer()],
-      program.programId
-    );
-    const [masterEditionMint] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("master_edition_mint", "utf-8"),
-        dataSetPublicKey.toBuffer(),
-        masterEditionPublicKey.toBuffer(),
-      ],
-      program.programId
-    );
-    const buyerKeypair = await createFundedWallet(provider, 20);
+
     const buyerBalance = 5;
-    const buyerAssociatedTokenToPayPublicKey =
-      await createFundedAssociatedTokenAccount(
-        provider,
-        acceptedMintPublicKey,
-        buyerBalance,
-        buyerKeypair
-      );
-    const buyerAssociatedTokenMasterEditionPublicKey =
-      await getAssociatedTokenAddress(
-        masterEditionMint,
-        buyerKeypair.publicKey
-      );
-    const sellerBalance = 2
-    const sellerTokenAccountToBePaidPublicKey =
-      await createFundedAssociatedTokenAccount(
-        provider,
-        acceptedMintPublicKey,
-        sellerBalance,
-        sellerKeypair
-      );
-    
+    const sellerBalance = 2;
+
+    const {
+      sellerKeypair,
+      dataSetBaseKeypair,
+      acceptedMintPublicKey,
+      dataSetPublicKey,
+      masterEditionPublicKey,
+      masterEditionMint,
+      buyerKeypair,
+      buyerAssociatedTokenToPayPublicKey,
+      buyerAssociatedTokenMasterEditionPublicKey,
+      sellerTokenAccountToBePaidPublicKey,
+    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
+
     await program.methods
-      .createDataSet("DataSet title")
+      .createDataSet(dataSetTitle)
       .accounts({
         authority: sellerKeypair.publicKey,
         dataSetBase: dataSetBaseKeypair.publicKey,
@@ -474,19 +395,26 @@ describe("fishplace", () => {
     assert.isDefined(postTxBuyerFunds);
     assert.equal(
       postTxBuyerFunds.amount,
-      preTxBuyerFunds.amount - BigInt(masterEditionAccount.price * masterEditionQuantity)
+      preTxBuyerFunds.amount -
+        BigInt(masterEditionAccount.price * masterEditionQuantity)
     );
     // Assert seller token account changed
     assert.isDefined(preTxSellerFunds);
     assert.isDefined(postTxSellerFunds);
     assert.equal(
       postTxSellerFunds.amount,
-      preTxSellerFunds.amount + BigInt(masterEditionAccount.price * masterEditionQuantity)
+      preTxSellerFunds.amount +
+        BigInt(masterEditionAccount.price * masterEditionQuantity)
     );
     // Assert master edition account values changed
     assert.isDefined(buyerAssociatedTokenMasterEditionPublicKey);
-    assert.equal(sellerMasterEditionAccount.amount, BigInt(masterEditionQuantity));
+    assert.equal(
+      sellerMasterEditionAccount.amount,
+      BigInt(masterEditionQuantity)
+    );
     assert.isDefined(nftMint);
     assert.equal(nftMint.supply, BigInt(masterEditionQuantity));
   });
+
+  it("Uses data set, ie: it is burnt:", async () => {});
 });
