@@ -40,16 +40,15 @@ describe("fishplace", () => {
   it("Create data set account:", async () => {
     const {
       sellerKeypair,
-      dataSetBaseKeypair,
       acceptedMintPublicKey,
       dataSetPublicKey,
+      hashId
     } = await initNewAccounts(provider, program);
 
     await program.methods
-      .createDataSet(dataSetTitle)
+      .createDataSet(hashId, dataSetTitle)
       .accounts({
         authority: sellerKeypair.publicKey,
-        dataSetBase: dataSetBaseKeypair.publicKey,
         mint: acceptedMintPublicKey,
       })
       .signers(
@@ -70,10 +69,10 @@ describe("fishplace", () => {
     const masterEditionQuantity = 0; // if 0 unlimited dataset nfts can be minted
     const {
       sellerKeypair,
-      dataSetBaseKeypair,
       acceptedMintPublicKey,
       dataSetPublicKey,
-      masterEditionPublicKey,
+      hashId,
+      masterEditionInfoPublicKey,
       masterEditionMint,
     } = await initNewAccounts(provider, program);
 
@@ -88,15 +87,13 @@ describe("fishplace", () => {
       .accounts({
         metadataProgram: metadataProgramPublicKey,
         authority: sellerKeypair.publicKey,
-        dataSetBase: dataSetBaseKeypair.publicKey,
         dataSet: dataSetPublicKey,
       })
       .preInstructions([
         await program.methods
-          .createDataSet(dataSetTitle)
+          .createDataSet(hashId, dataSetTitle)
           .accounts({
             authority: sellerKeypair.publicKey,
-            dataSetBase: dataSetBaseKeypair.publicKey,
             mint: acceptedMintPublicKey,
           })
           .instruction(),
@@ -106,14 +103,14 @@ describe("fishplace", () => {
       )
       .rpc();
 
-    const masterEditionAccount = await program.account.masterEdition.fetch(
-      masterEditionPublicKey
+    const masterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
+      masterEditionInfoPublicKey
     );
-    assert.isDefined(masterEditionAccount);
-    assert.equal(masterEditionAccount.price, masterEditionPrice);
-    assert.equal(masterEditionAccount.quantity, masterEditionQuantity);
-    assert.equal(masterEditionAccount.unlimitedQuantity, true);
-    assert.equal(masterEditionAccount.sold, 0);
+    assert.isDefined(masterEditionInfoAccount);
+    assert.equal(masterEditionInfoAccount.price, masterEditionPrice);
+    assert.equal(masterEditionInfoAccount.quantity, masterEditionQuantity);
+    assert.equal(masterEditionInfoAccount.unlimitedQuantity, true);
+    assert.equal(masterEditionInfoAccount.sold, 0);
 
     const masterEditionMintAccount = await getMint(
       provider.connection,
@@ -144,9 +141,8 @@ describe("fishplace", () => {
     const masterEditionPrice = 1;
     const masterEditionQuantity = 2;
     const {
-      dataSetBaseKeypair,
       dataSetPublicKey,
-      masterEditionPublicKey,
+      masterEditionInfoPublicKey,
       masterEditionMint,
       buyerKeypair,
       buyerAssociatedTokenToPayPublicKey,
@@ -162,14 +158,14 @@ describe("fishplace", () => {
     );
 
     // preTx info
-    const preMasterEditionAccount = await program.account.masterEdition.fetch(
-      masterEditionPublicKey
+    const premasterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
+      masterEditionInfoPublicKey
     );
-    assert.isDefined(preMasterEditionAccount);
-    assert.equal(preMasterEditionAccount.price, masterEditionPrice);
-    assert.equal(preMasterEditionAccount.quantity, masterEditionQuantity);
-    assert.equal(preMasterEditionAccount.unlimitedQuantity, false);
-    assert.equal(preMasterEditionAccount.sold, 0);
+    assert.isDefined(premasterEditionInfoAccount);
+    assert.equal(premasterEditionInfoAccount.price, masterEditionPrice);
+    assert.equal(premasterEditionInfoAccount.quantity, masterEditionQuantity);
+    assert.equal(premasterEditionInfoAccount.unlimitedQuantity, false);
+    assert.equal(premasterEditionInfoAccount.sold, 0);
 
     const preMasterEditionMintAccount = await getMint(
       provider.connection,
@@ -208,9 +204,8 @@ describe("fishplace", () => {
       .buyDataSet(masterEditionQuantity)
       .accounts({
         authority: buyerKeypair.publicKey,
-        dataSetBase: dataSetBaseKeypair.publicKey,
         dataSet: dataSetPublicKey,
-        masterEdition: masterEditionPublicKey,
+        masterEditionInfo: masterEditionInfoPublicKey,
         buyerVault: buyerAssociatedTokenToPayPublicKey,
         sellerVault: sellerTokenAccountToBePaidPublicKey,
         masterEditionMint: masterEditionMint,
@@ -222,11 +217,11 @@ describe("fishplace", () => {
       .rpc();
 
     // postTxInfo
-    const masterEditionAccount = await program.account.masterEdition.fetch(
-      masterEditionPublicKey
+    const masterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
+      masterEditionInfoPublicKey
     );
-    assert.isDefined(masterEditionAccount);
-    assert.equal(masterEditionAccount.sold, masterEditionQuantity);
+    assert.isDefined(masterEditionInfoAccount);
+    assert.equal(masterEditionInfoAccount.sold, masterEditionQuantity);
 
     const masterEditionMintAccount = await getMint(
       provider.connection,
@@ -262,9 +257,8 @@ describe("fishplace", () => {
     const buyerBalance = 5;
     const sellerBalance = 2;
     const {
-      dataSetBaseKeypair,
       dataSetPublicKey,
-      masterEditionPublicKey,
+      masterEditionInfoPublicKey,
       masterEditionMint,
       buyerKeypair,
       buyerAssociatedTokenToPayPublicKey,
@@ -304,9 +298,8 @@ describe("fishplace", () => {
       .buyDataSet(masterEditionQuantity)
       .accounts({
         authority: buyerKeypair.publicKey,
-        dataSetBase: dataSetBaseKeypair.publicKey,
         dataSet: dataSetPublicKey,
-        masterEdition: masterEditionPublicKey,
+        masterEditionInfo: masterEditionInfoPublicKey,
         buyerVault: buyerAssociatedTokenToPayPublicKey,
         sellerVault: sellerTokenAccountToBePaidPublicKey,
         masterEditionMint: masterEditionMint,
@@ -325,13 +318,13 @@ describe("fishplace", () => {
       provider.connection,
       sellerTokenAccountToBePaidPublicKey
     );
-    const sellerMasterEditionAccount = await getAccount(
+    const sellermasterEditionInfoAccount = await getAccount(
       provider.connection,
       buyerAssociatedTokenMasterEditionPublicKey
     );
     const nftMint = await getMint(provider.connection, masterEditionMint);
-    const masterEditionAccount = await program.account.masterEdition.fetch(
-      masterEditionPublicKey
+    const masterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
+      masterEditionInfoPublicKey
     );
 
     // Assert buyer token account changed
@@ -340,7 +333,7 @@ describe("fishplace", () => {
     assert.equal(
       postTxBuyerFunds.amount,
       preTxBuyerFunds.amount -
-        BigInt(masterEditionAccount.price * masterEditionQuantity)
+        BigInt(masterEditionInfoAccount.price * masterEditionQuantity)
     );
     // Assert seller token account changed
     assert.isDefined(preTxSellerFunds);
@@ -348,12 +341,12 @@ describe("fishplace", () => {
     assert.equal(
       postTxSellerFunds.amount,
       preTxSellerFunds.amount +
-        BigInt(masterEditionAccount.price * masterEditionQuantity)
+        BigInt(masterEditionInfoAccount.price * masterEditionQuantity)
     );
     // Assert master edition account values changed
     assert.isDefined(buyerAssociatedTokenMasterEditionPublicKey);
     assert.equal(
-      sellerMasterEditionAccount.amount,
+      sellermasterEditionInfoAccount.amount,
       BigInt(masterEditionQuantity)
     );
     assert.isDefined(nftMint);
@@ -367,9 +360,8 @@ describe("fishplace", () => {
     const sellerBalance = 2;
     const {
       sellerKeypair,
-      dataSetBaseKeypair,
       dataSetPublicKey,
-      masterEditionPublicKey,
+      masterEditionInfoPublicKey,
       masterEditionMint,
       buyerKeypair,
       buyerAssociatedTokenMasterEditionPublicKey,
@@ -383,19 +375,18 @@ describe("fishplace", () => {
     );
 
     // preTx info
-    const preMasterEditionAccount = await program.account.masterEdition.fetch(
-      masterEditionPublicKey
+    const premasterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
+      masterEditionInfoPublicKey
     );
-    assert.isDefined(preMasterEditionAccount);
-    assert.equal(preMasterEditionAccount.used, 0);
+    assert.isDefined(premasterEditionInfoAccount);
+    assert.equal(premasterEditionInfoAccount.used, 0);
 
     await program.methods
       .useDataSet(masterEditionQuantity)
       .accounts({
         authority: buyerKeypair.publicKey,
-        dataSetBase: dataSetBaseKeypair.publicKey,
         dataSet: dataSetPublicKey,
-        masterEdition: masterEditionPublicKey,
+        masterEditionInfo: masterEditionInfoPublicKey,
         masterEditionMint: masterEditionMint,
         masterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
       })
@@ -405,11 +396,11 @@ describe("fishplace", () => {
       .rpc();
 
     // postTx info
-    const masterEditionAccount = await program.account.masterEdition.fetch(
-      masterEditionPublicKey
+    const masterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
+      masterEditionInfoPublicKey
     );
-    assert.isDefined(masterEditionAccount);
-    assert.equal(masterEditionAccount.used, 1);
+    assert.isDefined(masterEditionInfoAccount);
+    assert.equal(masterEditionInfoAccount.used, 1);
 
     const masterEditionMintAccount = await getMint(
       provider.connection,
@@ -421,9 +412,8 @@ describe("fishplace", () => {
       .deleteDataSet()
       .accounts({
         authority: sellerKeypair.publicKey,
-        dataSetBase: dataSetBaseKeypair.publicKey,
         dataSet: dataSetPublicKey,
-        masterEdition: masterEditionPublicKey,
+        masterEditionInfo: masterEditionInfoPublicKey,
       })
       .signers(
         sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
@@ -438,7 +428,7 @@ describe("fishplace", () => {
       );
     }
     try {
-      await program.account.masterEdition.fetch(masterEditionPublicKey);
+      await program.account.masterEditionInfo.fetch(masterEditionInfoPublicKey);
     } catch (e) {
       assert.isTrue(
         e.toString().includes("Account does not exist or has no data")
@@ -452,9 +442,8 @@ describe("fishplace", () => {
     const masterEditionPrice = 1;
     const masterEditionQuantity = 1;
     const {
-      dataSetBaseKeypair,
       dataSetPublicKey,
-      masterEditionPublicKey,
+      masterEditionInfoPublicKey,
       masterEditionMint,
       buyerKeypair,
       buyerAssociatedTokenToPayPublicKey,
@@ -485,9 +474,8 @@ describe("fishplace", () => {
       .useDataSet(masterEditionQuantity)
       .accounts({
         authority: buyerKeypair.publicKey,
-        dataSetBase: dataSetBaseKeypair.publicKey,
         dataSet: dataSetPublicKey,
-        masterEdition: masterEditionPublicKey,
+        masterEditionInfo: masterEditionInfoPublicKey,
         masterEditionMint: masterEditionMint,
         masterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
       })
@@ -496,9 +484,8 @@ describe("fishplace", () => {
           .buyDataSet(masterEditionQuantity)
           .accounts({
             authority: buyerKeypair.publicKey,
-            dataSetBase: dataSetBaseKeypair.publicKey,
             dataSet: dataSetPublicKey,
-            masterEdition: masterEditionPublicKey,
+            masterEditionInfo: masterEditionInfoPublicKey,
             buyerVault: buyerAssociatedTokenToPayPublicKey,
             sellerVault: sellerTokenAccountToBePaidPublicKey,
             masterEditionMint: masterEditionMint,
@@ -512,11 +499,11 @@ describe("fishplace", () => {
       .rpc();
 
     // postTx info
-    const masterEditionAccount = await program.account.masterEdition.fetch(
-      masterEditionPublicKey
+    const masterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
+      masterEditionInfoPublicKey
     );
-    assert.isDefined(masterEditionAccount);
-    assert.equal(masterEditionAccount.used, 1);
+    assert.isDefined(masterEditionInfoAccount);
+    assert.equal(masterEditionInfoAccount.used, 1);
 
     const masterEditionMintAccount = await getMint(
       provider.connection,

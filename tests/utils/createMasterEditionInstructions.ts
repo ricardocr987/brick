@@ -20,10 +20,10 @@ export async function createMasterEditionInstructions(
 ) {
   const {
     sellerKeypair,
-    dataSetBaseKeypair,
     acceptedMintPublicKey,
     dataSetPublicKey,
-    masterEditionPublicKey,
+    hashId,
+    masterEditionInfoPublicKey,
     masterEditionMint,
     buyerKeypair,
     buyerAssociatedTokenToPayPublicKey,
@@ -41,15 +41,13 @@ export async function createMasterEditionInstructions(
     .accounts({
       metadataProgram: metadataProgramPublicKey,
       authority: sellerKeypair.publicKey,
-      dataSetBase: dataSetBaseKeypair.publicKey,
       dataSet: dataSetPublicKey,
     })
     .preInstructions([
       await program.methods
-        .createDataSet(dataSetTitle)
+        .createDataSet(hashId, dataSetTitle)
         .accounts({
           authority: sellerKeypair.publicKey,
-          dataSetBase: dataSetBaseKeypair.publicKey,
           mint: acceptedMintPublicKey,
         })
         .instruction(),
@@ -61,10 +59,9 @@ export async function createMasterEditionInstructions(
 
   return {
     sellerKeypair,
-    dataSetBaseKeypair,
     acceptedMintPublicKey,
     dataSetPublicKey,
-    masterEditionPublicKey,
+    masterEditionInfoPublicKey,
     masterEditionMint,
     buyerKeypair,
     buyerAssociatedTokenToPayPublicKey,

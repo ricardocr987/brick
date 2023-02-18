@@ -11,11 +11,12 @@ declare_id!("AxDTdwnYddq8jZB2Xouons961sv3sHSRHZuvGDuoVU2G");
 pub mod fishplace {
     use super::*;
 
-    pub fn create_data_set(ctx: Context<CreateDataSet>, title: String) -> Result<()> {
+    pub fn create_data_set(ctx: Context<CreateDataSet>, hash_id: String, title: String) -> Result<()> {
         (*ctx.accounts.data_set).title = title.clone();
         (*ctx.accounts.data_set).mint = ctx.accounts.mint.key();
         (*ctx.accounts.data_set).authority = ctx.accounts.authority.key();
         (*ctx.accounts.data_set).bump = *ctx.bumps.get("data_set").unwrap();
+        (*ctx.accounts.data_set).hash_id = hash_id.clone();
 
         Ok(())
     }
@@ -28,23 +29,23 @@ pub mod fishplace {
         master_edition_price: u32,
         master_edition_quantity: u32,
     ) -> Result<()> {
-        (*ctx.accounts.master_edition).price = master_edition_price;
-        (*ctx.accounts.master_edition).quantity = master_edition_quantity;
-        (*ctx.accounts.master_edition).sold = 0;
-        (*ctx.accounts.master_edition).used = 0;
-        (*ctx.accounts.master_edition).bump = *ctx.bumps.get("master_edition").unwrap();
-        (*ctx.accounts.master_edition).mint_bump = *ctx.bumps.get("master_edition_mint").unwrap();
-        (*ctx.accounts.master_edition).metadata_bump = *ctx.bumps.get("master_edition_metadata").unwrap();
+        (*ctx.accounts.master_edition_info).price = master_edition_price;
+        (*ctx.accounts.master_edition_info).quantity = master_edition_quantity;
+        (*ctx.accounts.master_edition_info).sold = 0;
+        (*ctx.accounts.master_edition_info).used = 0;
+        (*ctx.accounts.master_edition_info).bump = *ctx.bumps.get("master_edition_info").unwrap();
+        (*ctx.accounts.master_edition_info).mint_bump = *ctx.bumps.get("master_edition_mint").unwrap();
+        (*ctx.accounts.master_edition_info).metadata_bump = *ctx.bumps.get("master_edition_metadata").unwrap();
 
         if master_edition_quantity == 0 {
-            (*ctx.accounts.master_edition).unlimited_quantity = true;
+            (*ctx.accounts.master_edition_info).unlimited_quantity = true;
         } else {
-            (*ctx.accounts.master_edition).unlimited_quantity = false;
+            (*ctx.accounts.master_edition_info).unlimited_quantity = false;
         }
 
         let seeds = &[
             b"data_set".as_ref(),
-            ctx.accounts.data_set_base.to_account_info().key.as_ref(),
+            ctx.accounts.data_set.hash_id.as_ref(),
             &[ctx.accounts.data_set.bump],
         ];
 
@@ -85,17 +86,17 @@ pub mod fishplace {
 
     pub fn buy_data_set(ctx: Context<BuyDataSet>, quantity: u32) -> Result<()> {
         if 
-            (*ctx.accounts.master_edition).unlimited_quantity == false && 
-            (*ctx.accounts.master_edition).quantity < (*ctx.accounts.master_edition).sold + quantity
+            (*ctx.accounts.master_edition_info).unlimited_quantity == false && 
+            (*ctx.accounts.master_edition_info).quantity < (*ctx.accounts.master_edition_info).sold + quantity
         {
             return Err(ErrorCode::NotEnoughMintsAvailable.into());
         }
 
-        (*ctx.accounts.master_edition).sold += quantity;
+        (*ctx.accounts.master_edition_info).sold += quantity;
 
         let seeds = &[
             b"data_set".as_ref(),
-            ctx.accounts.data_set_base.to_account_info().key.as_ref(),
+            ctx.accounts.data_set.hash_id.as_ref(),
             &[ctx.accounts.data_set.bump],
         ];
 
@@ -110,7 +111,7 @@ pub mod fishplace {
                 },
             ),
             ctx.accounts
-                .master_edition
+                .master_edition_info
                 .price
                 .checked_mul(quantity.into())
                 .unwrap()
@@ -135,7 +136,7 @@ pub mod fishplace {
     }
 
     pub fn use_data_set(ctx: Context<UseDataSet>, quantity: u32) -> Result<()> {
-        (*ctx.accounts.master_edition).used += quantity;
+        (*ctx.accounts.master_edition_info).used += quantity;
 
         burn(
             CpiContext::new(
@@ -158,22 +159,20 @@ pub mod fishplace {
 }
 
 #[derive(Accounts)]
+#[instruction(hash_id: String)]
 pub struct CreateDataSet<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
     #[account(mut)]
     pub authority: Signer<'info>,
-    /// CHECK: This is used only for generating the PDA. As we need to create multiple datasets accounts, 
-    /// we need another key apart from b"data_set".as_ref(), ie: it is a random address to create multiple PDAs
-    pub data_set_base: UncheckedAccount<'info>,
     #[account(
         init,
         payer = authority,
         space = DataSet::SIZE,
         seeds = [
             b"data_set".as_ref(),
-            data_set_base.key().as_ref(),
+            hash_id.as_ref(),
         ],
         bump
     )]
@@ -191,12 +190,10 @@ pub struct CreateMasterEdition<'info> {
     pub rent: Sysvar<'info, Rent>,
     #[account(mut)]
     pub authority: Signer<'info>,
-    /// CHECK: This is used only for generating the PDA.
-    pub data_set_base: UncheckedAccount<'info>,
     #[account(
         seeds = [
             b"data_set".as_ref(),
-            data_set_base.key().as_ref(),
+            data_set.hash_id.as_ref()
         ], 
         bump = data_set.bump
     )]
@@ -204,14 +201,14 @@ pub struct CreateMasterEdition<'info> {
     #[account(
         init,
         payer = authority,
-        space = MasterEdition::SIZE,
+        space = MasterEditionInfo::SIZE,
         seeds = [
-            b"master_edition".as_ref(),
+            b"master_edition_info".as_ref(),
             data_set.key().as_ref(),
         ],
         bump,
     )]
-    pub master_edition: Account<'info, MasterEdition>,
+    pub master_edition_info: Account<'info, MasterEditionInfo>,
     #[account(
         init,
         payer = authority,
@@ -220,7 +217,7 @@ pub struct CreateMasterEdition<'info> {
         seeds = [
             b"master_edition_mint".as_ref(),
             data_set.key().as_ref(),
-            master_edition.key().as_ref(),
+            master_edition_info.key().as_ref(),
         ],
         bump,
     )]
@@ -247,12 +244,10 @@ pub struct BuyDataSet<'info> {
     pub rent: Sysvar<'info, Rent>,
     #[account(mut)]
     pub authority: Signer<'info>,
-    /// CHECK: This is used only for generating the PDA.
-    pub data_set_base: UncheckedAccount<'info>,
     #[account(
         seeds = [
             b"data_set".as_ref(),
-            data_set_base.key().as_ref(),
+            data_set.hash_id.as_ref(),
         ],
         bump = data_set.bump
     )]
@@ -260,12 +255,12 @@ pub struct BuyDataSet<'info> {
     #[account(
         mut,
         seeds = [
-            b"master_edition".as_ref(),
+            b"master_edition_info".as_ref(),
             data_set.key().as_ref(),
         ],
-        bump = master_edition.bump,
+        bump = master_edition_info.bump,
     )]
-    pub master_edition: Account<'info, MasterEdition>,
+    pub master_edition_info: Account<'info, MasterEditionInfo>,
     #[account(
         mut,
         constraint = buyer_vault.mint == data_set.mint @ ErrorCode::WrongBuyerMintProvided
@@ -281,9 +276,9 @@ pub struct BuyDataSet<'info> {
         seeds = [
             b"master_edition_mint".as_ref(),
             data_set.key().as_ref(),
-            master_edition.key().as_ref(),
+            master_edition_info.key().as_ref(),
         ],
-        bump = master_edition.mint_bump
+        bump = master_edition_info.mint_bump
     )]
     pub master_edition_mint: Account<'info, Mint>,
     #[account(
@@ -301,12 +296,10 @@ pub struct UseDataSet<'info> {
     pub rent: Sysvar<'info, Rent>,
     #[account(mut)]
     pub authority: Signer<'info>,
-    /// CHECK: This is used only for generating the PDA.
-    pub data_set_base: UncheckedAccount<'info>,
     #[account(
         seeds = [
             b"data_set".as_ref(),
-            data_set_base.key().as_ref(),
+            data_set.hash_id.as_ref(),
         ],
         bump = data_set.bump
     )]
@@ -314,21 +307,21 @@ pub struct UseDataSet<'info> {
     #[account(
         mut,
         seeds = [
-            b"master_edition".as_ref(),
+            b"master_edition_info".as_ref(),
             data_set.key().as_ref(),
         ],
-        bump = master_edition.bump,
+        bump = master_edition_info.bump,
         constraint = master_edition_vault.owner == authority.key() @ ErrorCode::WrongOwnerOfTheNFT
     )]
-    pub master_edition: Account<'info, MasterEdition>,
+    pub master_edition_info: Account<'info, MasterEditionInfo>,
     #[account(
         mut,
         seeds = [
             b"master_edition_mint".as_ref(),
             data_set.key().as_ref(),
-            master_edition.key().as_ref(),
+            master_edition_info.key().as_ref(),
         ],
-        bump = master_edition.mint_bump,
+        bump = master_edition_info.mint_bump,
     )]
     pub master_edition_mint: Account<'info, Mint>,
     #[account(
@@ -342,13 +335,11 @@ pub struct UseDataSet<'info> {
 pub struct DeleteDataSet<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    /// CHECK: This is used only for generating the PDA.
-    pub data_set_base: UncheckedAccount<'info>,
     #[account(
         mut,
         seeds = [
             b"data_set".as_ref(),
-            data_set_base.key().as_ref(),
+            data_set.hash_id.as_ref(),
         ],
         close = authority,
         bump = data_set.bump,
@@ -358,17 +349,18 @@ pub struct DeleteDataSet<'info> {
     #[account(
         mut,
         seeds = [
-            b"master_edition".as_ref(),
+            b"master_edition_info".as_ref(),
             data_set.key().as_ref(),
         ],
-        bump = master_edition.bump,
+        bump = master_edition_info.bump,
         close = authority,
         constraint = data_set.authority == authority.key() @ ErrorCode::WrongOwnerOfTheNFT
     )]
-    pub master_edition: Account<'info, MasterEdition>,
+    pub master_edition_info: Account<'info, MasterEditionInfo>,
 }
 #[account]
 pub struct DataSet {
+    pub hash_id: String, // limited to 32 bits
     pub title: String, // limited to 32 bits
     pub mint: Pubkey,
     pub authority: Pubkey,
@@ -376,11 +368,11 @@ pub struct DataSet {
 }
 
 impl DataSet {
-    pub const SIZE: usize = 8 + 36 + 32 + 32 + 1 + 1;
+    pub const SIZE: usize = 8 + 36 + 36 + 32 + 32 + 1;
 }
 
 #[account]
-pub struct MasterEdition {
+pub struct MasterEditionInfo {
     pub price: u32,
     pub quantity: u32,
     pub sold: u32,
@@ -391,7 +383,7 @@ pub struct MasterEdition {
     pub metadata_bump: u8,
 }
 
-impl MasterEdition {
+impl MasterEditionInfo {
     pub const SIZE: usize = 8 + 4 + 4 + 4 + 4  + 1 + 1 + 1 + 1;
 }
 

@@ -21,10 +21,10 @@ export async function createBuyDataSetInstructions(
 ) {
   const {
     sellerKeypair,
-    dataSetBaseKeypair,
     acceptedMintPublicKey,
     dataSetPublicKey,
-    masterEditionPublicKey,
+    hashId,
+    masterEditionInfoPublicKey,
     masterEditionMint,
     buyerKeypair,
     buyerAssociatedTokenToPayPublicKey,
@@ -42,15 +42,13 @@ export async function createBuyDataSetInstructions(
     .accounts({
       metadataProgram: metadataProgramPublicKey,
       authority: sellerKeypair.publicKey,
-      dataSetBase: dataSetBaseKeypair.publicKey,
       dataSet: dataSetPublicKey,
     })
     .preInstructions([
       await program.methods
-        .createDataSet(dataSetTitle)
+        .createDataSet(hashId, dataSetTitle)
         .accounts({
           authority: sellerKeypair.publicKey,
-          dataSetBase: dataSetBaseKeypair.publicKey,
           mint: acceptedMintPublicKey,
         })
         .instruction(),
@@ -76,9 +74,8 @@ export async function createBuyDataSetInstructions(
     .buyDataSet(masterEditionQuantity)
     .accounts({
       authority: buyerKeypair.publicKey,
-      dataSetBase: dataSetBaseKeypair.publicKey,
       dataSet: dataSetPublicKey,
-      masterEdition: masterEditionPublicKey,
+      masterEditionInfo: masterEditionInfoPublicKey,
       buyerVault: buyerAssociatedTokenToPayPublicKey,
       sellerVault: sellerTokenAccountToBePaidPublicKey,
       masterEditionMint: masterEditionMint,
@@ -91,10 +88,9 @@ export async function createBuyDataSetInstructions(
 
   return {
     sellerKeypair,
-    dataSetBaseKeypair,
     acceptedMintPublicKey,
     dataSetPublicKey,
-    masterEditionPublicKey,
+    masterEditionInfoPublicKey,
     masterEditionMint,
     buyerKeypair,
     buyerAssociatedTokenToPayPublicKey,
