@@ -14,7 +14,11 @@ import {
   getMint,
   createMintToInstruction,
 } from "@solana/spl-token";
-import { initNewAccounts } from "./utils";
+import {
+  createBuyDataSetInstructions,
+  createMasterEditionInstructions,
+  initNewAccounts,
+} from "./utils";
 
 describe("fishplace", () => {
   const provider = anchor.AnchorProvider.env();
@@ -41,7 +45,7 @@ describe("fishplace", () => {
       dataSetPublicKey,
     } = await initNewAccounts(provider, program);
 
-    const tx = await program.methods
+    await program.methods
       .createDataSet(dataSetTitle)
       .accounts({
         authority: sellerKeypair.publicKey,
@@ -52,11 +56,10 @@ describe("fishplace", () => {
         sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
       )
       .rpc();
+
     const dataSetAccount = await program.account.dataSet.fetch(
       dataSetPublicKey
     );
-
-    assert.isDefined(tx);
     assert.isDefined(dataSetAccount);
     assert.equal(dataSetAccount.title, dataSetTitle);
     assert.isTrue(dataSetAccount.authority.equals(sellerKeypair.publicKey));
@@ -75,18 +78,6 @@ describe("fishplace", () => {
     } = await initNewAccounts(provider, program);
 
     await program.methods
-      .createDataSet(dataSetTitle)
-      .accounts({
-        authority: sellerKeypair.publicKey,
-        dataSetBase: dataSetBaseKeypair.publicKey,
-        mint: acceptedMintPublicKey,
-      })
-      .signers(
-        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
-      )
-      .rpc();
-
-    const tx = await program.methods
       .createMasterEdition(
         masterEditionName,
         masterEditionSymbol,
@@ -100,6 +91,16 @@ describe("fishplace", () => {
         dataSetBase: dataSetBaseKeypair.publicKey,
         dataSet: dataSetPublicKey,
       })
+      .preInstructions([
+        await program.methods
+          .createDataSet(dataSetTitle)
+          .accounts({
+            authority: sellerKeypair.publicKey,
+            dataSetBase: dataSetBaseKeypair.publicKey,
+            mint: acceptedMintPublicKey,
+          })
+          .instruction(),
+      ])
       .signers(
         sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
       )
@@ -108,23 +109,23 @@ describe("fishplace", () => {
     const masterEditionAccount = await program.account.masterEdition.fetch(
       masterEditionPublicKey
     );
-    const masterEditionMintAccount = await getMint(
-      provider.connection,
-      masterEditionMint
-    );
-    const metaplexNft = await metaplex
-      .nfts()
-      .findByMint({ mintAddress: masterEditionMint });
-
-    assert.isDefined(tx);
     assert.isDefined(masterEditionAccount);
     assert.equal(masterEditionAccount.price, masterEditionPrice);
     assert.equal(masterEditionAccount.quantity, masterEditionQuantity);
     assert.equal(masterEditionAccount.unlimitedQuantity, true);
     assert.equal(masterEditionAccount.sold, 0);
+
+    const masterEditionMintAccount = await getMint(
+      provider.connection,
+      masterEditionMint
+    );
+    assert.isDefined(masterEditionMintAccount);
     assert.equal(masterEditionMintAccount.decimals, 0);
     assert.equal(masterEditionMintAccount.supply, BigInt(0));
 
+    const metaplexNft = await metaplex
+      .nfts()
+      .findByMint({ mintAddress: masterEditionMint });
     assert.isDefined(metaplexNft);
     if (isNft(metaplexNft)) {
       assert.equal(metaplexNft.updateAuthorityAddress, dataSetPublicKey);
@@ -138,16 +139,12 @@ describe("fishplace", () => {
   });
 
   it("Create a master edition to mint limited editions and buy all:", async () => {
-    const masterEditionPrice = 1;
-    const masterEditionQuantity = 2;
-
     const buyerBalance = 5;
     const sellerBalance = 2;
-
+    const masterEditionPrice = 1;
+    const masterEditionQuantity = 2;
     const {
-      sellerKeypair,
       dataSetBaseKeypair,
-      acceptedMintPublicKey,
       dataSetPublicKey,
       masterEditionPublicKey,
       masterEditionMint,
@@ -155,59 +152,35 @@ describe("fishplace", () => {
       buyerAssociatedTokenToPayPublicKey,
       buyerAssociatedTokenMasterEditionPublicKey,
       sellerTokenAccountToBePaidPublicKey,
-    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
-
-    await program.methods
-      .createDataSet(dataSetTitle)
-      .accounts({
-        authority: sellerKeypair.publicKey,
-        dataSetBase: dataSetBaseKeypair.publicKey,
-        mint: acceptedMintPublicKey,
-      })
-      .signers(
-        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
-      )
-      .rpc();
-
-    await program.methods
-      .createMasterEdition(
-        masterEditionName,
-        masterEditionSymbol,
-        masterEditionUri,
-        masterEditionPrice,
-        masterEditionQuantity
-      )
-      .accounts({
-        metadataProgram: metadataProgramPublicKey,
-        authority: sellerKeypair.publicKey,
-        dataSetBase: dataSetBaseKeypair.publicKey,
-        dataSet: dataSetPublicKey,
-      })
-      .signers(
-        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
-      )
-      .rpc();
+    } = await createMasterEditionInstructions(
+      provider,
+      program,
+      buyerBalance,
+      sellerBalance,
+      masterEditionPrice,
+      masterEditionQuantity
+    );
 
     // preTx info
     const preMasterEditionAccount = await program.account.masterEdition.fetch(
       masterEditionPublicKey
     );
-    const preMasterEditionMintAccount = await getMint(
-      provider.connection,
-      masterEditionMint
-    );
-    const metaplexNft = await metaplex
-      .nfts()
-      .findByMint({ mintAddress: masterEditionMint });
-
     assert.isDefined(preMasterEditionAccount);
     assert.equal(preMasterEditionAccount.price, masterEditionPrice);
     assert.equal(preMasterEditionAccount.quantity, masterEditionQuantity);
     assert.equal(preMasterEditionAccount.unlimitedQuantity, false);
     assert.equal(preMasterEditionAccount.sold, 0);
+
+    const preMasterEditionMintAccount = await getMint(
+      provider.connection,
+      masterEditionMint
+    );
     assert.equal(preMasterEditionMintAccount.decimals, 0);
     assert.equal(preMasterEditionMintAccount.supply, BigInt(0));
 
+    const metaplexNft = await metaplex
+      .nfts()
+      .findByMint({ mintAddress: masterEditionMint });
     assert.isDefined(metaplexNft);
     if (isNft(metaplexNft)) {
       assert.equal(metaplexNft.updateAuthorityAddress, dataSetPublicKey);
@@ -252,13 +225,13 @@ describe("fishplace", () => {
     const masterEditionAccount = await program.account.masterEdition.fetch(
       masterEditionPublicKey
     );
+    assert.isDefined(masterEditionAccount);
+    assert.equal(masterEditionAccount.sold, masterEditionQuantity);
+
     const masterEditionMintAccount = await getMint(
       provider.connection,
       masterEditionMint
     );
-
-    assert.isDefined(masterEditionAccount);
-    assert.equal(masterEditionAccount.sold, masterEditionQuantity);
     assert.equal(
       masterEditionMintAccount.supply,
       BigInt(masterEditionQuantity)
@@ -285,15 +258,11 @@ describe("fishplace", () => {
 
   it("Create and buy 2 data set master edition copies in the same ix from an unlimited mint:", async () => {
     const masterEditionPrice = 1;
-    const masterEditionQuantity = 2; // if 0 unlimited dataset nfts can be minted
-
+    const masterEditionQuantity = 2;
     const buyerBalance = 5;
     const sellerBalance = 2;
-
     const {
-      sellerKeypair,
       dataSetBaseKeypair,
-      acceptedMintPublicKey,
       dataSetPublicKey,
       masterEditionPublicKey,
       masterEditionMint,
@@ -301,38 +270,14 @@ describe("fishplace", () => {
       buyerAssociatedTokenToPayPublicKey,
       buyerAssociatedTokenMasterEditionPublicKey,
       sellerTokenAccountToBePaidPublicKey,
-    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
-
-    await program.methods
-      .createDataSet(dataSetTitle)
-      .accounts({
-        authority: sellerKeypair.publicKey,
-        dataSetBase: dataSetBaseKeypair.publicKey,
-        mint: acceptedMintPublicKey,
-      })
-      .signers(
-        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
-      )
-      .rpc();
-
-    await program.methods
-      .createMasterEdition(
-        masterEditionName,
-        masterEditionSymbol,
-        masterEditionUri,
-        masterEditionPrice,
-        masterEditionQuantity
-      )
-      .accounts({
-        metadataProgram: metadataProgramPublicKey,
-        authority: sellerKeypair.publicKey,
-        dataSetBase: dataSetBaseKeypair.publicKey,
-        dataSet: dataSetPublicKey,
-      })
-      .signers(
-        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
-      )
-      .rpc();
+    } = await createMasterEditionInstructions(
+      provider,
+      program,
+      buyerBalance,
+      sellerBalance,
+      masterEditionPrice,
+      masterEditionQuantity
+    );
 
     const preTxBuyerFunds = await getAccount(
       provider.connection,
@@ -355,7 +300,7 @@ describe("fishplace", () => {
       )
     );
 
-    const tx = await program.methods
+    await program.methods
       .buyDataSet(masterEditionQuantity)
       .accounts({
         authority: buyerKeypair.publicKey,
@@ -389,7 +334,6 @@ describe("fishplace", () => {
       masterEditionPublicKey
     );
 
-    assert.isDefined(tx);
     // Assert buyer token account changed
     assert.isDefined(preTxBuyerFunds);
     assert.isDefined(postTxBuyerFunds);
@@ -416,5 +360,168 @@ describe("fishplace", () => {
     assert.equal(nftMint.supply, BigInt(masterEditionQuantity));
   });
 
-  it("Uses data set, ie: it is burnt:", async () => {});
+  it("Uses data set, ie: it is burnt, as there shouldn't be more nfts to sell should close all accounts:", async () => {
+    const masterEditionPrice = 1;
+    const masterEditionQuantity = 1;
+    const buyerBalance = 5;
+    const sellerBalance = 2;
+    const {
+      sellerKeypair,
+      dataSetBaseKeypair,
+      dataSetPublicKey,
+      masterEditionPublicKey,
+      masterEditionMint,
+      buyerKeypair,
+      buyerAssociatedTokenMasterEditionPublicKey,
+    } = await createBuyDataSetInstructions(
+      provider,
+      program,
+      buyerBalance,
+      sellerBalance,
+      masterEditionPrice,
+      masterEditionQuantity
+    );
+
+    // preTx info
+    const preMasterEditionAccount = await program.account.masterEdition.fetch(
+      masterEditionPublicKey
+    );
+    assert.isDefined(preMasterEditionAccount);
+    assert.equal(preMasterEditionAccount.used, 0);
+
+    await program.methods
+      .useDataSet(masterEditionQuantity)
+      .accounts({
+        authority: buyerKeypair.publicKey,
+        dataSetBase: dataSetBaseKeypair.publicKey,
+        dataSet: dataSetPublicKey,
+        masterEdition: masterEditionPublicKey,
+        masterEditionMint: masterEditionMint,
+        masterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
+      })
+      .signers(
+        buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+      )
+      .rpc();
+
+    // postTx info
+    const masterEditionAccount = await program.account.masterEdition.fetch(
+      masterEditionPublicKey
+    );
+    assert.isDefined(masterEditionAccount);
+    assert.equal(masterEditionAccount.used, 1);
+
+    const masterEditionMintAccount = await getMint(
+      provider.connection,
+      masterEditionMint
+    );
+    assert.equal(masterEditionMintAccount.supply, BigInt(0));
+
+    await program.methods
+      .deleteDataSet()
+      .accounts({
+        authority: sellerKeypair.publicKey,
+        dataSetBase: dataSetBaseKeypair.publicKey,
+        dataSet: dataSetPublicKey,
+        masterEdition: masterEditionPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc();
+
+    try {
+      await program.account.dataSet.fetch(dataSetPublicKey);
+    } catch (e) {
+      assert.isTrue(
+        e.toString().includes("Account does not exist or has no data")
+      );
+    }
+    try {
+      await program.account.masterEdition.fetch(masterEditionPublicKey);
+    } catch (e) {
+      assert.isTrue(
+        e.toString().includes("Account does not exist or has no data")
+      );
+    }
+  });
+
+  it("Create a transaction composed by the buy and use instruction:", async () => {
+    const buyerBalance = 5;
+    const sellerBalance = 2;
+    const masterEditionPrice = 1;
+    const masterEditionQuantity = 1;
+    const {
+      dataSetBaseKeypair,
+      dataSetPublicKey,
+      masterEditionPublicKey,
+      masterEditionMint,
+      buyerKeypair,
+      buyerAssociatedTokenToPayPublicKey,
+      buyerAssociatedTokenMasterEditionPublicKey,
+      sellerTokenAccountToBePaidPublicKey,
+    } = await createMasterEditionInstructions(
+      provider,
+      program,
+      buyerBalance,
+      sellerBalance,
+      masterEditionPrice,
+      masterEditionQuantity
+    );
+
+    // initilizes buyer token account to store the nft copy
+    await provider.sendAndConfirm(
+      new anchor.web3.Transaction().add(
+        createAssociatedTokenAccountInstruction(
+          provider.wallet.publicKey,
+          buyerAssociatedTokenMasterEditionPublicKey,
+          buyerKeypair.publicKey,
+          masterEditionMint
+        )
+      )
+    );
+
+    await program.methods
+      .useDataSet(masterEditionQuantity)
+      .accounts({
+        authority: buyerKeypair.publicKey,
+        dataSetBase: dataSetBaseKeypair.publicKey,
+        dataSet: dataSetPublicKey,
+        masterEdition: masterEditionPublicKey,
+        masterEditionMint: masterEditionMint,
+        masterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
+      })
+      .preInstructions([
+        await program.methods
+          .buyDataSet(masterEditionQuantity)
+          .accounts({
+            authority: buyerKeypair.publicKey,
+            dataSetBase: dataSetBaseKeypair.publicKey,
+            dataSet: dataSetPublicKey,
+            masterEdition: masterEditionPublicKey,
+            buyerVault: buyerAssociatedTokenToPayPublicKey,
+            sellerVault: sellerTokenAccountToBePaidPublicKey,
+            masterEditionMint: masterEditionMint,
+            masterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
+          })
+          .instruction(),
+      ])
+      .signers(
+        buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+      )
+      .rpc();
+
+    // postTx info
+    const masterEditionAccount = await program.account.masterEdition.fetch(
+      masterEditionPublicKey
+    );
+    assert.isDefined(masterEditionAccount);
+    assert.equal(masterEditionAccount.used, 1);
+
+    const masterEditionMintAccount = await getMint(
+      provider.connection,
+      masterEditionMint
+    );
+    assert.equal(masterEditionMintAccount.supply, BigInt(0));
+  });
 });

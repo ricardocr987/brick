@@ -6,7 +6,7 @@ import {
   createFundedWallet,
   createMint,
   createFundedAssociatedTokenAccount,
-} from "./index";
+} from ".";
 
 export async function initNewAccounts(
   provider: AnchorProvider,
