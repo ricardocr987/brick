@@ -26,14 +26,6 @@ export const createMint = async (
           newAccountPubkey: tokenMint.publicKey,
           lamports: lamportsForMint,
         })
-      )
-      .add(
-        createInitializeMintInstruction(
-          tokenMint.publicKey,
-          decimals,
-          provider.wallet.publicKey,
-          provider.wallet.publicKey
-        )
       ),
     [tokenMint]
   );
