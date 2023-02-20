@@ -4,11 +4,11 @@ use anchor_lang::{
     solana_program::{
         account_info::AccountInfo,
     },
-    system_program::{ System, CreateAccount, create_account },
+    system_program::System,
 };
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{ initialize_mint2, burn, mint_to, transfer, InitializeMint2, Burn, Mint, MintTo, Token, TokenAccount, Transfer },
+    token::{ burn, mint_to, transfer, Burn, Mint, MintTo, Token, TokenAccount, Transfer },
 };
 use mpl_token_metadata::{
     ID as mpl_metadata_program,
@@ -58,31 +58,6 @@ pub mod fishplace {
             ctx.accounts.data_set.hash_id.as_ref(),
             &[ctx.accounts.data_set.bump],
         ];
-
-        create_account(
-            CpiContext::new(
-                ctx.accounts.system_program.to_account_info(),
-                CreateAccount { 
-                    from: ctx.accounts.authority.to_account_info(), // signer
-                    to: ctx.accounts.master_edition_mint.to_account_info(), // new account
-                },
-            ),
-            Rent::get()?.minimum_balance(Mint::LEN),
-            Mint::LEN as u64,
-            &ctx.accounts.data_set.key(),
-        )?;
-
-        initialize_mint2(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                InitializeMint2 {
-                    mint: ctx.accounts.master_edition_mint.to_account_info(),
-                },
-            ),
-            0,
-            &ctx.accounts.data_set.key(),
-            Some(&ctx.accounts.data_set.key())
-        )?;
 
         //This instruction creates and initializes a new Metadata account for a given Mint account
         solana_program::program::invoke_signed(

@@ -79,7 +79,7 @@ export async function createBuyDataSetInstructions(
       buyerVault: buyerAssociatedTokenToPayPublicKey,
       sellerVault: sellerTokenAccountToBePaidPublicKey,
       masterEditionMint: masterEditionMint,
-      masterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
+      buyerMasterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
     })
     .signers(
       buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]

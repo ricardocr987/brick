@@ -209,7 +209,7 @@ describe("fishplace", () => {
         buyerVault: buyerAssociatedTokenToPayPublicKey,
         sellerVault: sellerTokenAccountToBePaidPublicKey,
         masterEditionMint: masterEditionMint,
-        masterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
+        buyerMasterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
       })
       .signers(
         buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -303,7 +303,7 @@ describe("fishplace", () => {
         buyerVault: buyerAssociatedTokenToPayPublicKey,
         sellerVault: sellerTokenAccountToBePaidPublicKey,
         masterEditionMint: masterEditionMint,
-        masterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
+        buyerMasterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
       })
       .signers(
         buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -388,7 +388,7 @@ describe("fishplace", () => {
         dataSet: dataSetPublicKey,
         masterEditionInfo: masterEditionInfoPublicKey,
         masterEditionMint: masterEditionMint,
-        masterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
+        buyerMasterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
       })
       .signers(
         buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -477,7 +477,7 @@ describe("fishplace", () => {
         dataSet: dataSetPublicKey,
         masterEditionInfo: masterEditionInfoPublicKey,
         masterEditionMint: masterEditionMint,
-        masterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
+        buyerMasterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
       })
       .preInstructions([
         await program.methods
@@ -489,7 +489,7 @@ describe("fishplace", () => {
             buyerVault: buyerAssociatedTokenToPayPublicKey,
             sellerVault: sellerTokenAccountToBePaidPublicKey,
             masterEditionMint: masterEditionMint,
-            masterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
+            buyerMasterEditionVault: buyerAssociatedTokenMasterEditionPublicKey,
           })
           .instruction(),
       ])
