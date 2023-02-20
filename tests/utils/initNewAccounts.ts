@@ -7,7 +7,7 @@ import {
   createMint,
   createFundedAssociatedTokenAccount,
 } from ".";
-import { v4 as uuid } from 'uuid'
+import { v4 as uuid } from "uuid";
 
 export async function initNewAccounts(
   provider: AnchorProvider,
@@ -17,16 +17,20 @@ export async function initNewAccounts(
 ) {
   const sellerKeypair = await createFundedWallet(provider, 20);
   const acceptedMintPublicKey = await createMint(provider);
-  const hashIdAux: string = uuid()
-  const hashId = hashIdAux.substring(0, 32)
+  const hashIdAux: string = uuid();
+  const hashId = hashIdAux.substring(0, 32);
   const [dataSetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("data_set", "utf-8"), anchor.utils.bytes.utf8.encode(hashId)],
     program.programId
   );
-  const [masterEditionInfoPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("master_edition_info", "utf-8"), dataSetPublicKey.toBuffer()],
-    program.programId
-  );
+  const [masterEditionInfoPublicKey] =
+    anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("master_edition_info", "utf-8"),
+        dataSetPublicKey.toBuffer(),
+      ],
+      program.programId
+    );
   const [masterEditionMint] = anchor.web3.PublicKey.findProgramAddressSync(
     [
       Buffer.from("master_edition_mint", "utf-8"),

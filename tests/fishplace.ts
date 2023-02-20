@@ -38,12 +38,8 @@ describe("fishplace", () => {
   const masterEditionUri = "https://aleph.im/876jkfbnewjdfjn";
 
   it("Create data set account:", async () => {
-    const {
-      sellerKeypair,
-      acceptedMintPublicKey,
-      dataSetPublicKey,
-      hashId
-    } = await initNewAccounts(provider, program);
+    const { sellerKeypair, acceptedMintPublicKey, dataSetPublicKey, hashId } =
+      await initNewAccounts(provider, program);
 
     await program.methods
       .createDataSet(hashId, dataSetTitle)
@@ -103,9 +99,8 @@ describe("fishplace", () => {
       )
       .rpc();
 
-    const masterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
-      masterEditionInfoPublicKey
-    );
+    const masterEditionInfoAccount =
+      await program.account.masterEditionInfo.fetch(masterEditionInfoPublicKey);
     assert.isDefined(masterEditionInfoAccount);
     assert.equal(masterEditionInfoAccount.price, masterEditionPrice);
     assert.equal(masterEditionInfoAccount.quantity, masterEditionQuantity);
@@ -158,9 +153,8 @@ describe("fishplace", () => {
     );
 
     // preTx info
-    const premasterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
-      masterEditionInfoPublicKey
-    );
+    const premasterEditionInfoAccount =
+      await program.account.masterEditionInfo.fetch(masterEditionInfoPublicKey);
     assert.isDefined(premasterEditionInfoAccount);
     assert.equal(premasterEditionInfoAccount.price, masterEditionPrice);
     assert.equal(premasterEditionInfoAccount.quantity, masterEditionQuantity);
@@ -217,9 +211,8 @@ describe("fishplace", () => {
       .rpc();
 
     // postTxInfo
-    const masterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
-      masterEditionInfoPublicKey
-    );
+    const masterEditionInfoAccount =
+      await program.account.masterEditionInfo.fetch(masterEditionInfoPublicKey);
     assert.isDefined(masterEditionInfoAccount);
     assert.equal(masterEditionInfoAccount.sold, masterEditionQuantity);
 
@@ -323,9 +316,8 @@ describe("fishplace", () => {
       buyerAssociatedTokenMasterEditionPublicKey
     );
     const nftMint = await getMint(provider.connection, masterEditionMint);
-    const masterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
-      masterEditionInfoPublicKey
-    );
+    const masterEditionInfoAccount =
+      await program.account.masterEditionInfo.fetch(masterEditionInfoPublicKey);
 
     // Assert buyer token account changed
     assert.isDefined(preTxBuyerFunds);
@@ -375,9 +367,8 @@ describe("fishplace", () => {
     );
 
     // preTx info
-    const premasterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
-      masterEditionInfoPublicKey
-    );
+    const premasterEditionInfoAccount =
+      await program.account.masterEditionInfo.fetch(masterEditionInfoPublicKey);
     assert.isDefined(premasterEditionInfoAccount);
     assert.equal(premasterEditionInfoAccount.used, 0);
 
@@ -396,9 +387,8 @@ describe("fishplace", () => {
       .rpc();
 
     // postTx info
-    const masterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
-      masterEditionInfoPublicKey
-    );
+    const masterEditionInfoAccount =
+      await program.account.masterEditionInfo.fetch(masterEditionInfoPublicKey);
     assert.isDefined(masterEditionInfoAccount);
     assert.equal(masterEditionInfoAccount.used, 1);
 
@@ -499,9 +489,8 @@ describe("fishplace", () => {
       .rpc();
 
     // postTx info
-    const masterEditionInfoAccount = await program.account.masterEditionInfo.fetch(
-      masterEditionInfoPublicKey
-    );
+    const masterEditionInfoAccount =
+      await program.account.masterEditionInfo.fetch(masterEditionInfoPublicKey);
     assert.isDefined(masterEditionInfoAccount);
     assert.equal(masterEditionInfoAccount.used, 1);
 

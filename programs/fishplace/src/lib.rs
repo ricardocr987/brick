@@ -1,4 +1,3 @@
-// based on: https://github.com/danmt/create-mint-and-metadata-on-chain
 use anchor_lang::{
     prelude::*,
     solana_program::{
@@ -23,10 +22,10 @@ pub mod fishplace {
 
     pub fn create_data_set(ctx: Context<CreateDataSet>, hash_id: String, title: String) -> Result<()> {
         (*ctx.accounts.data_set).title = title.clone();
+        (*ctx.accounts.data_set).hash_id = hash_id.clone();
         (*ctx.accounts.data_set).mint = ctx.accounts.mint.key();
         (*ctx.accounts.data_set).authority = ctx.accounts.authority.key();
         (*ctx.accounts.data_set).bump = *ctx.bumps.get("data_set").unwrap();
-        (*ctx.accounts.data_set).hash_id = hash_id.clone();
 
         Ok(())
     }
@@ -394,7 +393,7 @@ pub struct MasterEditionInfo {
 }
 
 impl MasterEditionInfo {
-    pub const SIZE: usize = 8 + 4 + 4 + 4 + 4  + 1 + 1 + 1 + 1;
+    pub const SIZE: usize = 8 + 4 + 4 + 4 + 4 + 1 + 1 + 1 + 1;
 }
 
 #[error_code]
