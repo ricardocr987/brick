@@ -2,11 +2,11 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{ initialize_mint2, burn, transfer, InitializeMint2, Transfer, Burn, Mint, Token, TokenAccount, },
+    token::{ transfer, Transfer, Mint, Token, TokenAccount, },
 };
 use mpl_token_metadata::{
     ID as mpl_metadata_program,
-    instruction::{ create_metadata_accounts_v3, create_master_edition_v3, mint_new_edition_from_master_edition_via_token, burn_edition_nft },
+    instruction::{ create_metadata_accounts_v3, create_master_edition_v3, mint_new_edition_from_master_edition_via_token, burn_edition_nft, burn_nft },
     state::EDITION_MARKER_BIT_SIZE
 };
 
@@ -14,8 +14,6 @@ declare_id!("AxDTdwnYddq8jZB2Xouons961sv3sHSRHZuvGDuoVU2G");
 
 #[program]
 pub mod fishplace {
-    use mpl_token_metadata::instruction::burn_edition_nft;
-
     use super::*;
 
     pub fn create_data_set(ctx: Context<CreateDataSet>, hash_id: String, title: String) -> Result<()> {
@@ -50,18 +48,6 @@ pub mod fishplace {
         } else {
             (*ctx.accounts.master_edition_info).unlimited_quantity = false;
         }
-
-        initialize_mint2(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                InitializeMint2 {
-                    mint: ctx.accounts.master_edition_mint.to_account_info(),
-                },
-            ),
-            0,
-            &ctx.accounts.data_set.key(),
-            Some(&ctx.accounts.data_set.key())
-        )?;
 
         let seeds = &[
             b"data_set".as_ref(),
@@ -155,24 +141,7 @@ pub mod fishplace {
                     authority: ctx.accounts.authority.to_account_info(),
                 },
             ),
-            ctx.accounts
-                .master_edition_info
-                .price
-                .checked_mul(1.into())
-                .unwrap()
-                .into(),
-        )?;
-
-        initialize_mint2(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                InitializeMint2 {
-                    mint: ctx.accounts.edition_mint.to_account_info(),
-                },
-            ),
-            0,
-            &ctx.accounts.data_set.key(),
-            Some(&ctx.accounts.data_set.key())
+            ctx.accounts.master_edition_info.price
         )?;
 
         // neccessary????? This instruction creates and initializes a new Metadata account for a given Mint account
@@ -210,21 +179,33 @@ pub mod fishplace {
         solana_program::program::invoke_signed(
             &mint_new_edition_from_master_edition_via_token(
                 //args:
+                mpl_metadata_program,
+                ctx.accounts.print_edition_metadata.key(), //new metadata
+                ctx.accounts.print_edition.key(), //new edition
+                ctx.accounts.master_edition.key(), //master edition
+                ctx.accounts.print_edition_mint.key(), //new mint
+                ctx.accounts.data_set.key(), //mint_authority
+                ctx.accounts.authority.key(), //payer
+                ctx.accounts.data_set.key(), //master edition owner
+                ctx.accounts.buyer_print_edition_vault.key(), //token account containing token from master metadata mint
+                ctx.accounts.data_set.key(), //update_authority
+                ctx.accounts.master_edition_metadata.key(), //metadata
+                ctx.accounts.master_edition_mint.key(), // metadata mint
                 ctx.accounts.master_edition_info.sold // edition (number)
             ),
             //accounts context:
             &[
-                ctx.accounts.edition_metadata.to_account_info().clone(), //new metadata
-                ctx.accounts.edition.to_account_info().clone(), //new edition
+                ctx.accounts.print_edition_metadata.to_account_info().clone(), //new metadata
+                ctx.accounts.print_edition.to_account_info().clone(), //new edition
                 ctx.accounts.master_edition.to_account_info().clone(), //master edition
-                ctx.accounts.edition_mint.to_account_info().clone(), //new mint
+                ctx.accounts.print_edition_mint.to_account_info().clone(), //new mint
                 ctx.accounts.edition_mark_pda.to_account_info().clone(), //edition mark pda
                 ctx.accounts.data_set.to_account_info().clone(), //mint_authority
                 ctx.accounts.authority.to_account_info().clone(), //payer
-                ctx.accounts.master_edition_vault.to_account_info().clone(), //token account containing master edition
-                ctx.accounts.master_metadata_mint_vault.to_account_info().clone(), //token account containing token from master metadata mint
+                ctx.accounts.data_set.to_account_info().clone(), //master edition owner
+                ctx.accounts.buyer_print_edition_vault.to_account_info().clone(), //token account containing token from master metadata mint
                 ctx.accounts.data_set.to_account_info().clone(), //update_authority
-                ctx.accounts.edition_metadata.to_account_info().clone(), //new metadata
+                ctx.accounts.master_edition_metadata.to_account_info().clone(), //metadata
             ],
             &[&seeds[..]],
         )?;
@@ -235,17 +216,19 @@ pub mod fishplace {
     pub fn use_data_set(ctx: Context<UseDataSet>) -> Result<()> {
         (*ctx.accounts.master_edition_info).used += 1;
 
-// program_id: Pubkey, metadata: Pubkey, owner: Pubkey, print_edition_mint: Pubkey, master_edition_mint: Pubkey, 
-//print_edition_token: Pubkey, master_edition_token: Pubkey, master_edition: Pubkey, print_edition: Pubkey, edition_marker: Pubkey, spl_token: Pubkey
         solana_program::program::invoke(
             &burn_edition_nft(
                 //args:
-                metadata_program, //program_id
-                (*ctx.accounts.master_edition_metadata).key(), //metadata_account
+                mpl_metadata_program, //program_id
+                ctx.accounts.master_edition_metadata.key(), //metadata_account
                 ctx.accounts.data_set.key(), //owner
-                ctx.accounts.master_edition_mint.key(), //print edition mint
-                (*ctx.accounts.master_edition_vault).key(), //token
-                ctx.accounts.master_edition_account.key(), //edition
+                ctx.accounts.print_edition_mint.key(),//print edition mint
+                ctx.accounts.master_edition_mint.key(), // master_edition_mint
+                // print_edition_token
+                (*ctx.accounts.buyer_print_edition_vault).key(), //master_edition_token
+                ctx.accounts.master_edition.key(), //master_edition
+                // print edition
+                // edition maker
                 ctx.accounts.token_program.key(), // spl-token program
             ),
             //accounts context:
@@ -255,8 +238,8 @@ pub mod fishplace {
                 // print edition mint
                 ctx.accounts.master_edition_mint.to_account_info().clone(),// master edition mint
                 // print edition token account
-                // master edition token account
-                ctx.accounts.master_edition_account.to_account_info().clone(), //master edition account
+                (*ctx.accounts.master_edition_vault).key(), //master_edition_token
+                ctx.accounts.master_edition.to_account_info().clone(), //master edition account
                 // print edition account
                 // edition maker account
                 ctx.accounts.token_program.key(), // spl-token program
@@ -266,7 +249,42 @@ pub mod fishplace {
         Ok(())
     }
 
-    pub fn delete_data_set(_ctx: Context<DeleteDataSet>) -> Result<()> {
+    pub fn delete_data_set(ctx: Context<DeleteDataSet>) -> Result<()> {
+        if ctx.accounts.master_edition_mint.supply > 0 {
+            return Err(ErrorCode::EditionsAvailable.into());
+        }
+
+        // should burn master edition
+        solana_program::program::invoke(
+            &burn_nft(
+                //args:
+                mpl_metadata_program, //program_id
+                (*ctx.accounts.master_edition_metadata).key(), //metadata_account
+                ctx.accounts.data_set.key(), //owner
+                //print edition mint
+                ctx.accounts.master_edition_mint.key(), // master_edition_mint
+                // print_edition_token
+                (*ctx.accounts.master_edition_vault).key(), //master_edition_token
+                ctx.accounts.master_edition_account.key(), //master_edition
+                // print edition
+                // edition maker
+                ctx.accounts.token_program.key(), // spl-token program
+            ),
+            //accounts context:
+            &[
+                ctx.accounts.master_edition_metadata.to_account_info().clone(), //metadata
+                ctx.accounts.authority.to_account_info().clone(),// owner
+                // print edition mint
+                ctx.accounts.master_edition_mint.to_account_info().clone(),// master edition mint
+                // print edition token account
+                (*ctx.accounts.master_edition_vault).key(), //master_edition_token
+                ctx.accounts.master_edition_account.to_account_info().clone(), //master edition account
+                // print edition account
+                // edition maker account
+                ctx.accounts.token_program.key(), // spl-token program
+            ],
+        )?;
+
         Ok(())
     }
 }
@@ -433,31 +451,36 @@ pub struct BuyDataSet<'info> {
         bump = master_edition_info.mint_bump
     )]
     pub master_edition_mint: Account<'info, Mint>,
+    #[account(
+        mut,
+        constraint = master_edition_vault.mint == master_edition_mint.key() @ ErrorCode::WrongTokenAccount
+    )]
+    pub master_edition_vault: Box<Account<'info, TokenAccount>>,
     /// CHECK: this will be verified by token metadata program
     #[account(
         mut,
         seeds = [
             b"metadata".as_ref(),
             metadata_program.key().as_ref(),
-            edition_mint.key().as_ref(),
+            print_edition_mint.key().as_ref(),
         ],
         bump,
         seeds::program = metadata_program.key()
     )]
-    pub edition_metadata: UncheckedAccount<'info>,
+    pub print_edition_metadata: UncheckedAccount<'info>,
     /// CHECK: this will be verified by token metadata program
     #[account(
         mut,
         seeds = [
             b"metadata".as_ref(),
             metadata_program.key().as_ref(),
-            edition_mint.key().as_ref(),
+            print_edition_mint.key().as_ref(),
             b"edition".as_ref(),
         ],
         bump,
         seeds::program = metadata_program.key()
     )]
-    pub edition: UncheckedAccount<'info>,
+    pub print_edition: UncheckedAccount<'info>,
     #[account(
         init,
         payer = authority,
@@ -471,7 +494,7 @@ pub struct BuyDataSet<'info> {
         ],
         bump,
     )]
-    pub edition_mint: Account<'info, Mint>,
+    pub print_edition_mint: Account<'info, Mint>,
     /// CHECK: this will be verified by token metadata program
     #[account(
         mut,
@@ -488,13 +511,16 @@ pub struct BuyDataSet<'info> {
     pub edition_mark_pda: UncheckedAccount<'info>,
     #[account(
         mut,
-        constraint = buyer_edition_vault.mint == edition_mint.key() @ ErrorCode::WrongEditionTokenAccount
+        constraint = buyer_edition_vault.mint == print_edition_mint.key() @ ErrorCode::WrongTokenAccount
     )]
-    pub buyer_edition_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store nft
+    pub buyer_print_edition_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store nft
 }
 
 #[derive(Accounts)]
 pub struct UseDataSet<'info> {
+    /// CHECK: contraint added to force using actual metaplex metadata program
+    #[account(address = metadata_program, executable)]
+    pub metadata_program: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -519,6 +545,31 @@ pub struct UseDataSet<'info> {
         constraint = buyer_edition_vault.owner == authority.key() @ ErrorCode::WrongOwnerOfTheNFT
     )]
     pub master_edition_info: Account<'info, MasterEditionInfo>,
+    /// CHECK: this will be verified by token metadata program
+    #[account(
+        mut,
+        seeds = [
+            b"metadata".as_ref(),
+            metadata_program.key().as_ref(),
+            master_edition_mint.key().as_ref(),
+            b"edition".as_ref(),
+        ],
+        bump,
+        seeds::program = metadata_program.key()
+    )]
+    pub master_edition: UncheckedAccount<'info>,
+    /// CHECK: this will be verified by token metadata program
+    #[account(
+        mut,
+        seeds = [
+            b"metadata".as_ref(),
+            metadata_program.key().as_ref(),
+            master_edition_mint.key().as_ref(),
+        ],
+        bump,
+        seeds::program = metadata_program.key()
+    )]
+    pub master_edition_metadata: UncheckedAccount<'info>,
     #[account(
         mut,
         seeds = [
@@ -529,11 +580,23 @@ pub struct UseDataSet<'info> {
         bump = master_edition_info.mint_bump,
     )]
     pub master_edition_mint: Account<'info, Mint>,
+    
     #[account(
         mut,
-        constraint = buyer_edition_vault.mint == master_edition_mint.key() @ ErrorCode::WrongMasterEditionTokenAccount
+        seeds = [
+            b"edition_mint".as_ref(),
+            data_set.key().as_ref(),
+            master_edition_info.key().as_ref(),
+            &master_edition_info.sold.to_le_bytes(),
+        ],
+        bump = print_edition_info.mint_bump,
     )]
-    pub buyer_edition_vault: Box<Account<'info, TokenAccount>>,
+    pub print_edition_mint: Account<'info, Mint>,
+    #[account(
+        mut,
+        constraint = buyer_print_edition_vault.mint == master_edition_mint.key() @ ErrorCode::WrongMasterEditionTokenAccount
+    )]
+    pub buyer_print_edition_vault: Box<Account<'info, TokenAccount>>,
 }
 
 #[derive(Accounts)]
@@ -601,48 +664,10 @@ pub enum ErrorCode {
     WrongSellerMintProvided,
     #[msg("You are providing a wrong buyer mint.")]
     WrongBuyerMintProvided,
-    #[msg("You are providing a wrong token account where the dataset NFT is stored.")]
-    WrongEditionTokenAccount,
-    #[msg("You are trying to use an NFT that you don't own.")]
+    #[msg("You are providing a wrong token account.")]
+    WrongTokenAccount,
+    #[msg("You are providing to use an NFT that you don't own.")]
     WrongOwnerOfTheNFT,
+    #[msg("You are trying to close a master edition that still has editions availables, you should wait to close this account.")]
+    EditionsAvailable
 }
-
-
-/* Another way to mint NFTs from the master edition (would replace the cpi made to the mint ix of the token_program in buy_data_set ix):
-    //Given a Masted Edition, this instruction creates a new Edition derived from a new Mint account.
-    solana_program::program::invoke_signed(
-        &mint_new_edition_from_master_edition_via_token(
-            //args:
-            mpl_metadata_program, //program_id
-            (*ctx.accounts.new_metadata).key(), //edition metadata
-            *ctx.accounts.new_edition.key(), //edition
-            ctx.accounts.master_edition.key(), //master_edition NFT
-            ctx.accounts.master_edition_mint.key(), //mint
-            ctx.accounts.data_set.key(), //mint_authority
-            (*ctx.accounts.authority).key(), //payer
-            ctx.accounts.token_account_owner.key(), 
-            ctx.accounts.token_account.key(), 
-            ctx.accounts.new_metadata_update_authority.key(), 
-            ctx.accounts.metadata.key(), 
-            ctx.accounts.metadata_mint.key(), 
-            edition,
-        ),
-        //accounts context:
-        &[
-            ctx.accounts.new_metadata.to_account_info().clone(), //"New Metadata key (pda of ['metadata', program id, mint id])"
-            ctx.accounts.new_edition.to_account_info().clone(), //"New Edition (pda of ['metadata', program id, mint id, 'edition'])"
-            ctx.accounts.master_edition.to_account_info().clone(), //"Master Record Edition V2 (pda of ['metadata', program id, master metadata mint id, 'edition'])"
-            ctx.accounts.new_mint.to_account_info().clone(), //"Mint of new token - THIS WILL TRANSFER AUTHORITY AWAY FROM THIS KEY"
-            ctx.accounts.edition_mark_pda.to_account_info().clone(), //"Edition pda to mark creation - will be checked for pre-existence. (pda of ['metadata', program id, 
-                                                                    //master metadata mint id, 'edition', edition_number]) where edition_number is NOT the edition number 
-                                                                    //you pass in args but actually edition_number = floor(edition/EDITION_MARKER_BIT_SIZE)."
-            ctx.accounts.new_mint_authority.to_account_info().clone(), //newMintAuthority
-            ctx.accounts.authority.to_account_info().clone(), //payer
-            ctx.accounts.data_set.to_account_info().clone(), //owner of token account containing master token
-            ctx.accounts.master_edition_token_account.to_account_info().clone(), //"token account containing token from master metadata mint"
-            ctx.accounts.data_set.to_account_info().clone(), //Update authority info for new metadata
-            ctx.accounts.master_edition_metadata.to_account_info().clone(),
-        ],
-        &[&seeds[..]],
-    )?;
-*/ 
