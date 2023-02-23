@@ -36,6 +36,7 @@ pub mod fishplace {
         (*ctx.accounts.asset).hash_id = hash_id.clone();
         (*ctx.accounts.asset).item_hash = item_hash.clone();
         (*ctx.accounts.asset).accepted_mint = ctx.accounts.accepted_mint.key();
+        (*ctx.accounts.asset).asset_mint = ctx.accounts.asset_mint.key();
         (*ctx.accounts.asset).authority = ctx.accounts.authority.key();
         (*ctx.accounts.asset).price = token_price;
         (*ctx.accounts.asset).sold = 0;
@@ -43,7 +44,7 @@ pub mod fishplace {
         (*ctx.accounts.asset).exemplars = exemplars;
         (*ctx.accounts.asset).quantity_per_exemplars = quantity_per_exemplars;
         (*ctx.accounts.asset).bump = *ctx.bumps.get("asset").unwrap();
-        (*ctx.accounts.asset).mint_bump = *ctx.bumps.get("asset_token_mint").unwrap();
+        (*ctx.accounts.asset).mint_bump = *ctx.bumps.get("asset_mint").unwrap();
         (*ctx.accounts.asset).metadata_bump = *ctx.bumps.get("token_metadata").unwrap();
         
         let seeds = &[
@@ -58,7 +59,7 @@ pub mod fishplace {
                 //args:
                 mpl_metadata_program, //program_id
                 (*ctx.accounts.token_metadata).key(), //metadata_account
-                ctx.accounts.asset_token_mint.key(), //mint
+                ctx.accounts.asset_mint.key(), //mint
                 ctx.accounts.asset.key(), //mint_authority
                 (*ctx.accounts.authority).key(), //payer
                 ctx.accounts.asset.key(), //update_authority
@@ -76,7 +77,7 @@ pub mod fishplace {
             //accounts context:
             &[
                 ctx.accounts.token_metadata.to_account_info().clone(), //metadata
-                ctx.accounts.asset_token_mint.to_account_info().clone(), //mint
+                ctx.accounts.asset_mint.to_account_info().clone(), //mint
                 ctx.accounts.asset.to_account_info().clone(), //mint_authority
                 ctx.accounts.authority.to_account_info().clone(), //payer
                 ctx.accounts.asset.to_account_info().clone(), //update_authority
@@ -131,7 +132,7 @@ pub mod fishplace {
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 MintTo {
-                    mint: ctx.accounts.token_mint.to_account_info(),
+                    mint: ctx.accounts.asset_mint.to_account_info(),
                     to: ctx.accounts.buyer_minted_token_vault.to_account_info(),
                     authority: ctx.accounts.asset.to_account_info(),
                 },
@@ -152,7 +153,7 @@ pub mod fishplace {
                 Burn {
                     authority: ctx.accounts.authority.to_account_info(),
                     from: ctx.accounts.buyer_minted_token_vault.to_account_info(),
-                    mint: ctx.accounts.token_mint.to_account_info(),
+                    mint: ctx.accounts.asset_mint.to_account_info(),
                 },
             ),
             exemplars.into(),
@@ -199,19 +200,19 @@ pub struct CreateAsset<'info> {
         mint::decimals = 0,
         mint::authority = asset,
         seeds = [
-            b"token_mint".as_ref(),
+            b"asset_mint".as_ref(),
             asset.key().as_ref(),
         ],
         bump,
     )]
-    pub asset_token_mint: Account<'info, Mint>,
+    pub asset_mint: Account<'info, Mint>,
     /// CHECK: this will be verified by token metadata program
     #[account(
         mut,
         seeds = [
             b"metadata".as_ref(),
             metadata_program.key().as_ref(),
-            asset_token_mint.key().as_ref(),
+            asset_mint.key().as_ref(),
         ],
         bump,
         seeds::program = metadata_program.key()
@@ -265,15 +266,15 @@ pub struct BuyAsset<'info> {
     #[account(
         mut,
         seeds = [
-            b"token_mint".as_ref(),
+            b"asset_mint".as_ref(),
             asset.key().as_ref(),
         ],
         bump = asset.mint_bump
     )]
-    pub token_mint: Account<'info, Mint>,
+    pub asset_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = buyer_minted_token_vault.mint == token_mint.key() @ ErrorCode::WrongTokenAccount
+        constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::WrongTokenAccount
     )]
     pub buyer_minted_token_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store Asset token
 }
@@ -298,16 +299,16 @@ pub struct UseAsset<'info> {
     #[account(
         mut,
         seeds = [
-            b"token_mint".as_ref(),
+            b"asset_mint".as_ref(),
             asset.key().as_ref(),
         ],
         bump = asset.mint_bump,
         constraint = buyer_minted_token_vault.owner == authority.key() @ ErrorCode::WrongTokenOwner
     )]
-    pub token_mint: Account<'info, Mint>,
+    pub asset_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = buyer_minted_token_vault.mint == token_mint.key() @ ErrorCode::WrongTokenAccount
+        constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::WrongTokenAccount
     )]
     pub buyer_minted_token_vault: Box<Account<'info, TokenAccount>>,
 }
@@ -334,7 +335,8 @@ pub struct Asset {
     pub app_name: String, // to discriminate between different apps accounts, limited to 32 bytes
     pub hash_id: String, // limited to 32 bytes
     pub item_hash: String, // limited to 64 bytes
-    pub accepted_mint: Pubkey,
+    pub accepted_mint: Pubkey, // token used to trade
+    pub asset_mint: Pubkey, // asset mint
     pub authority: Pubkey,
     pub price: u32,
     pub sold: u32,
@@ -347,7 +349,7 @@ pub struct Asset {
 }
 
 impl Asset {
-    pub const SIZE: usize = 8 + 36 + 36 + 68 + 32 + 32 + 4 + 4 + 4 + 4 + 4 + 1 + 1 + 1;
+    pub const SIZE: usize = 8 + 36 + 36 + 68 + 32 + 32 + 32 + 4 + 4 + 4 + 4 + 4 + 1 + 1 + 1;
 }
 
 #[error_code]

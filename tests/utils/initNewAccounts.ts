@@ -23,13 +23,13 @@ export async function initNewAccounts(
     [Buffer.from("asset", "utf-8"), anchor.utils.bytes.utf8.encode(hashId)],
     program.programId
   );
-  const [tokenMint] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("token_mint", "utf-8"), assetPublicKey.toBuffer()],
+  const [assetMint] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("asset_mint", "utf-8"), assetPublicKey.toBuffer()],
     program.programId
   );
   const buyerKeypair = await createFundedWallet(provider, 20);
   const buyerMintedTokenVault = await getAssociatedTokenAddress(
-    tokenMint,
+    assetMint,
     buyerKeypair.publicKey
   );
   let buyerTransferVault = undefined;
@@ -54,7 +54,7 @@ export async function initNewAccounts(
     acceptedMintPublicKey,
     hashId,
     assetPublicKey,
-    tokenMint,
+    assetMint,
     buyerKeypair,
     buyerMintedTokenVault,
     buyerTransferVault,

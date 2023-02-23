@@ -45,7 +45,7 @@ describe("fishplace", () => {
       acceptedMintPublicKey,
       assetPublicKey,
       hashId,
-      tokenMint,
+      assetMint,
       buyerKeypair,
       buyerMintedTokenVault,
       buyerTransferVault,
@@ -83,6 +83,10 @@ describe("fishplace", () => {
     assert.equal(preBuyAssetAccount.hashId, hashId);
     assert.equal(preBuyAssetAccount.itemHash, hashId);
     assert.equal(
+      preBuyAssetAccount.assetMint.toString(),
+      assetMint.toString()
+    );
+    assert.equal(
       preBuyAssetAccount.acceptedMint.toString(),
       acceptedMintPublicKey.toString()
     );
@@ -96,19 +100,19 @@ describe("fishplace", () => {
     assert.equal(preBuyAssetAccount.exemplars, exemplars);
     assert.equal(preBuyAssetAccount.quantityPerExemplars, quantityPerExemplars);
 
-    const preBuyTokenMintAccount = await getMint(
+    const preBuyassetMintAccount = await getMint(
       provider.connection,
-      tokenMint
+      assetMint
     );
-    assert.isDefined(preBuyTokenMintAccount);
-    assert.equal(preBuyTokenMintAccount.decimals, 0);
-    assert.equal(preBuyTokenMintAccount.supply, BigInt(0));
+    assert.isDefined(preBuyassetMintAccount);
+    assert.equal(preBuyassetMintAccount.decimals, 0);
+    assert.equal(preBuyassetMintAccount.supply, BigInt(0));
 
-    const token = await metaplex.nfts().findByMint({ mintAddress: tokenMint });
+    const token = await metaplex.nfts().findByMint({ mintAddress: assetMint });
     assert.isDefined(token);
     if (isNft(token)) {
       assert.equal(token.updateAuthorityAddress, assetPublicKey);
-      assert.equal(token.mint.address, tokenMint);
+      assert.equal(token.mint.address, assetMint);
       assert.equal(token.mint.decimals, 0);
       assert.isTrue(token.mint.supply.basisPoints.eq(new anchor.BN(0)));
       assert.equal(token.json.name, tokenName);
@@ -123,7 +127,7 @@ describe("fishplace", () => {
           provider.wallet.publicKey,
           buyerMintedTokenVault,
           buyerKeypair.publicKey,
-          tokenMint
+          assetMint
         )
       )
     );
@@ -135,7 +139,7 @@ describe("fishplace", () => {
         asset: assetPublicKey,
         buyerTransferVault: buyerTransferVault,
         sellerTransferVault: sellerTransferVault,
-        tokenMint: tokenMint,
+        assetMint: assetMint,
         buyerMintedTokenVault: buyerMintedTokenVault,
       })
       .signers(
@@ -149,8 +153,8 @@ describe("fishplace", () => {
     assert.isDefined(assetAccount);
     assert.equal(assetAccount.sold, exemplarsToBuy);
 
-    const tokenMintAccount = await getMint(provider.connection, tokenMint);
-    assert.equal(tokenMintAccount.supply, BigInt(exemplarsToBuy));
+    const assetMintAccount = await getMint(provider.connection, assetMint);
+    assert.equal(assetMintAccount.supply, BigInt(exemplarsToBuy));
 
     // check if the buyer is able to mint more tokens from the units bought
     // impossible, the mint authority is the asset pda, only is possible calling
@@ -159,7 +163,7 @@ describe("fishplace", () => {
       await provider.sendAndConfirm(
         new anchor.web3.Transaction().add(
           createMintToInstruction(
-            tokenMint,
+            assetMint,
             buyerKeypair.publicKey,
             assetPublicKey,
             1,
@@ -173,7 +177,7 @@ describe("fishplace", () => {
     }
   });
 
-  it("Create a asset (limited to 2 buys), mint and metadata accounts and buy both, can't buy more", async () => {
+  it("Create an asset (limited to 2 buys), mint and metadata accounts and buy both, can't buy more", async () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const tokenPrice = 2;
@@ -184,7 +188,7 @@ describe("fishplace", () => {
       acceptedMintPublicKey,
       assetPublicKey,
       hashId,
-      tokenMint,
+      assetMint,
       buyerKeypair,
       buyerMintedTokenVault,
       buyerTransferVault,
@@ -221,7 +225,7 @@ describe("fishplace", () => {
           provider.wallet.publicKey,
           buyerMintedTokenVault,
           buyerKeypair.publicKey,
-          tokenMint
+          assetMint
         )
       )
     );
@@ -233,7 +237,7 @@ describe("fishplace", () => {
         asset: assetPublicKey,
         buyerTransferVault: buyerTransferVault,
         sellerTransferVault: sellerTransferVault,
-        tokenMint: tokenMint,
+        assetMint: assetMint,
         buyerMintedTokenVault: buyerMintedTokenVault,
       })
       .signers(
@@ -247,8 +251,8 @@ describe("fishplace", () => {
     assert.isDefined(assetAccount);
     assert.equal(assetAccount.exemplars - exemplars, 0);
 
-    const tokenMintAccount = await getMint(provider.connection, tokenMint);
-    assert.equal(tokenMintAccount.supply, BigInt(exemplars));
+    const assetMintAccount = await getMint(provider.connection, assetMint);
+    assert.equal(assetMintAccount.supply, BigInt(exemplars));
 
     // check if the buyer is possible to buy more even available = 0
     try {
@@ -259,7 +263,7 @@ describe("fishplace", () => {
           asset: assetPublicKey,
           buyerTransferVault: buyerTransferVault,
           sellerTransferVault: sellerTransferVault,
-          tokenMint: tokenMint,
+          assetMint: assetMint,
           buyerMintedTokenVault: buyerMintedTokenVault,
         })
         .signers(
@@ -285,7 +289,7 @@ describe("fishplace", () => {
       acceptedMintPublicKey,
       assetPublicKey,
       hashId,
-      tokenMint,
+      assetMint,
       buyerKeypair,
       buyerMintedTokenVault,
       buyerTransferVault,
@@ -355,7 +359,7 @@ describe("fishplace", () => {
           provider.wallet.publicKey,
           buyerMintedTokenVault,
           buyerKeypair.publicKey,
-          tokenMint
+          assetMint
         )
       )
     );
@@ -367,7 +371,7 @@ describe("fishplace", () => {
         asset: assetPublicKey,
         buyerTransferVault: buyerTransferVault,
         sellerTransferVault: sellerTransferVault,
-        tokenMint: tokenMint,
+        assetMint: assetMint,
         buyerMintedTokenVault: buyerMintedTokenVault,
       })
       .signers(
@@ -384,7 +388,7 @@ describe("fishplace", () => {
       provider.connection,
       sellerTransferVault
     );
-    const mintedTokenMint = await getMint(provider.connection, tokenMint);
+    const mintedassetMint = await getMint(provider.connection, assetMint);
     const assetAccount = await program.account.asset.fetch(assetPublicKey);
     const buyerTokenVaultAccount = await getAccount(
       provider.connection,
@@ -408,11 +412,11 @@ describe("fishplace", () => {
     // Assert master edition account values changed
     assert.isDefined(buyerMintedTokenVault);
     assert.equal(buyerTokenVaultAccount.amount, BigInt(exemplarsToBuy));
-    assert.isDefined(mintedTokenMint);
-    assert.equal(mintedTokenMint.supply, BigInt(exemplarsToBuy));
+    assert.isDefined(mintedassetMint);
+    assert.equal(mintedassetMint.supply, BigInt(exemplarsToBuy));
   });
 
-  it("Use asset test: seller try to close account with tokens unused and when all used should allow to close the accounts", async () => {
+  it("Use asset test: seller try to close account with tokens unused, when all used should allow to close the accounts", async () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const tokenPrice = 2;
@@ -423,7 +427,7 @@ describe("fishplace", () => {
       acceptedMintPublicKey,
       assetPublicKey,
       hashId,
-      tokenMint,
+      assetMint,
       buyerKeypair,
       buyerMintedTokenVault,
       buyerTransferVault,
@@ -460,7 +464,7 @@ describe("fishplace", () => {
           provider.wallet.publicKey,
           buyerMintedTokenVault,
           buyerKeypair.publicKey,
-          tokenMint
+          assetMint
         )
       )
     );
@@ -472,7 +476,7 @@ describe("fishplace", () => {
         asset: assetPublicKey,
         buyerTransferVault: buyerTransferVault,
         sellerTransferVault: sellerTransferVault,
-        tokenMint: tokenMint,
+        assetMint: assetMint,
         buyerMintedTokenVault: buyerMintedTokenVault,
       })
       .signers(
@@ -511,7 +515,7 @@ describe("fishplace", () => {
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
-        tokenMint: tokenMint,
+        assetMint: assetMint,
         buyerMintedTokenVault: buyerMintedTokenVault,
       })
       .signers(
@@ -527,8 +531,8 @@ describe("fishplace", () => {
     assert.isDefined(postUseAssetAccount);
     assert.equal(postUseAssetAccount.used, exemplars);
 
-    const tokenMintAccount = await getMint(provider.connection, tokenMint);
-    assert.equal(tokenMintAccount.supply, BigInt(0));
+    const assetMintAccount = await getMint(provider.connection, assetMint);
+    assert.equal(assetMintAccount.supply, BigInt(0));
 
     await program.methods
       .deleteAsset()
@@ -551,7 +555,7 @@ describe("fishplace", () => {
     }
   });
 
-  it("Create a transaction composed by the buy and use instruction:", async () => {
+  it("Create a transaction composed by buy and use instruction:", async () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const tokenPrice = 2;
@@ -562,7 +566,7 @@ describe("fishplace", () => {
       acceptedMintPublicKey,
       assetPublicKey,
       hashId,
-      tokenMint,
+      assetMint,
       buyerKeypair,
       buyerMintedTokenVault,
       buyerTransferVault,
@@ -599,7 +603,7 @@ describe("fishplace", () => {
           provider.wallet.publicKey,
           buyerMintedTokenVault,
           buyerKeypair.publicKey,
-          tokenMint
+          assetMint
         )
       )
     );
@@ -609,7 +613,7 @@ describe("fishplace", () => {
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
-        tokenMint: tokenMint,
+        assetMint: assetMint,
         buyerMintedTokenVault: buyerMintedTokenVault,
       })
       .signers(
@@ -623,7 +627,7 @@ describe("fishplace", () => {
             asset: assetPublicKey,
             buyerTransferVault: buyerTransferVault,
             sellerTransferVault: sellerTransferVault,
-            tokenMint: tokenMint,
+            assetMint: assetMint,
             buyerMintedTokenVault: buyerMintedTokenVault,
           })
           .instruction(),
@@ -636,7 +640,7 @@ describe("fishplace", () => {
     assert.isDefined(assetAccount);
     assert.equal(assetAccount.used, exemplars);
 
-    const tokenMintAccount = await getMint(provider.connection, tokenMint);
-    assert.equal(tokenMintAccount.supply, BigInt(0));
+    const assetMintAccount = await getMint(provider.connection, assetMint);
+    assert.equal(assetMintAccount.supply, BigInt(0));
   });
 });
