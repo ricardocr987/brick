@@ -14,48 +14,42 @@ use mpl_token_metadata::{
     instruction::create_metadata_accounts_v3,
 };
 
-declare_id!("AxDTdwnYddq8jZB2Xouons961sv3sHSRHZuvGDuoVU2G");
+declare_id!("FiShPdUdNuvhF9qETghrDWXiiAR8X2ujeGfGwSC84d4P");
 
 #[program]
 pub mod fishplace {
     use super::*;
 
-    pub fn create_data_set(ctx: Context<CreateDataSet>, hash_id: String, title: String) -> Result<()> {
-        (*ctx.accounts.data_set).title = title.clone();
-        (*ctx.accounts.data_set).hash_id = hash_id.clone();
-        (*ctx.accounts.data_set).mint = ctx.accounts.mint.key();
-        (*ctx.accounts.data_set).authority = ctx.accounts.authority.key();
-        (*ctx.accounts.data_set).bump = *ctx.bumps.get("data_set").unwrap();
-
-        Ok(())
-    }
-
-    pub fn create_master_edition(
-        ctx: Context<CreateMasterEdition>,
-        master_edition_name: String,
-        master_edition_symbol: String,
-        master_edition_uri: String,
-        master_edition_price: u32,
-        master_edition_quantity: u32,
+    pub fn create_asset(
+        ctx: Context<CreateAsset>,
+        hash_id: String, 
+        app_name: String,
+        item_hash: String,
+        token_price: u32,
+        exemplars: i32,
+        quantity_per_exemplars: u32,
+        token_name: String,
+        token_symbol: String,
+        token_uri: String,
     ) -> Result<()> {
-        (*ctx.accounts.master_edition_info).price = master_edition_price;
-        (*ctx.accounts.master_edition_info).quantity = master_edition_quantity;
-        (*ctx.accounts.master_edition_info).sold = 0;
-        (*ctx.accounts.master_edition_info).used = 0;
-        (*ctx.accounts.master_edition_info).bump = *ctx.bumps.get("master_edition_info").unwrap();
-        (*ctx.accounts.master_edition_info).mint_bump = *ctx.bumps.get("master_edition_mint").unwrap();
-        (*ctx.accounts.master_edition_info).metadata_bump = *ctx.bumps.get("master_edition_metadata").unwrap();
-
-        if master_edition_quantity == 0 {
-            (*ctx.accounts.master_edition_info).unlimited_quantity = true;
-        } else {
-            (*ctx.accounts.master_edition_info).unlimited_quantity = false;
-        }
-
+        (*ctx.accounts.asset).app_name = app_name.clone();
+        (*ctx.accounts.asset).hash_id = hash_id.clone();
+        (*ctx.accounts.asset).item_hash = item_hash.clone();
+        (*ctx.accounts.asset).accepted_mint = ctx.accounts.accepted_mint.key();
+        (*ctx.accounts.asset).authority = ctx.accounts.authority.key();
+        (*ctx.accounts.asset).price = token_price;
+        (*ctx.accounts.asset).sold = 0;
+        (*ctx.accounts.asset).used = 0;
+        (*ctx.accounts.asset).exemplars = exemplars;
+        (*ctx.accounts.asset).quantity_per_exemplars = quantity_per_exemplars;
+        (*ctx.accounts.asset).bump = *ctx.bumps.get("asset").unwrap();
+        (*ctx.accounts.asset).mint_bump = *ctx.bumps.get("asset_token_mint").unwrap();
+        (*ctx.accounts.asset).metadata_bump = *ctx.bumps.get("token_metadata").unwrap();
+        
         let seeds = &[
-            b"data_set".as_ref(),
-            ctx.accounts.data_set.hash_id.as_ref(),
-            &[ctx.accounts.data_set.bump],
+            b"asset".as_ref(),
+            ctx.accounts.asset.hash_id.as_ref(),
+            &[ctx.accounts.asset.bump],
         ];
 
         //This instruction creates and initializes a new Metadata account for a given Mint account
@@ -63,14 +57,14 @@ pub mod fishplace {
             &create_metadata_accounts_v3(
                 //args:
                 mpl_metadata_program, //program_id
-                (*ctx.accounts.master_edition_metadata).key(), //metadata_account
-                ctx.accounts.master_edition_mint.key(), //mint
-                ctx.accounts.data_set.key(), //mint_authority
+                (*ctx.accounts.token_metadata).key(), //metadata_account
+                ctx.accounts.asset_token_mint.key(), //mint
+                ctx.accounts.asset.key(), //mint_authority
                 (*ctx.accounts.authority).key(), //payer
-                ctx.accounts.data_set.key(), //update_authority
-                master_edition_name,
-                master_edition_symbol,
-                master_edition_uri,
+                ctx.accounts.asset.key(), //update_authority
+                token_name,
+                token_symbol,
+                token_uri,
                 None, //creators
                 0, //sellerFeeBasisPoints
                 true, //update_authority_is_signer
@@ -81,11 +75,11 @@ pub mod fishplace {
             ),
             //accounts context:
             &[
-                ctx.accounts.master_edition_metadata.to_account_info().clone(), //metadata
-                ctx.accounts.master_edition_mint.to_account_info().clone(), //mint
-                ctx.accounts.data_set.to_account_info().clone(), //mint_authority
+                ctx.accounts.token_metadata.to_account_info().clone(), //metadata
+                ctx.accounts.asset_token_mint.to_account_info().clone(), //mint
+                ctx.accounts.asset.to_account_info().clone(), //mint_authority
                 ctx.accounts.authority.to_account_info().clone(), //payer
-                ctx.accounts.data_set.to_account_info().clone(), //update_authority
+                ctx.accounts.asset.to_account_info().clone(), //update_authority
             ],
             &[&seeds[..]],
         )?;
@@ -93,36 +87,41 @@ pub mod fishplace {
         Ok(())
     }
 
-    pub fn buy_data_set(ctx: Context<BuyDataSet>, quantity: u32) -> Result<()> {
+    pub fn edit_asset_price(ctx: Context<EditAssetPrice>, token_price: u32) -> Result<()> {
+        (*ctx.accounts.asset).price = token_price;
+
+        Ok(())
+    }
+
+    pub fn buy_asset(ctx: Context<BuyAsset>, exemplars: u32) -> Result<()> {
         if 
-            (*ctx.accounts.master_edition_info).unlimited_quantity == false && 
-            (*ctx.accounts.master_edition_info).quantity < (*ctx.accounts.master_edition_info).sold + quantity
-        {
-            return Err(ErrorCode::NotEnoughMintsAvailable.into());
+            (*ctx.accounts.asset).exemplars > -1 && 
+            (*ctx.accounts.asset).sold + exemplars > (*ctx.accounts.asset).exemplars as u32 {
+                return Err(ErrorCode::NotEnoughTokensAvailable.into());
         }
 
-        (*ctx.accounts.master_edition_info).sold += quantity;
+        (*ctx.accounts.asset).sold += exemplars;
 
         let seeds = &[
-            b"data_set".as_ref(),
-            ctx.accounts.data_set.hash_id.as_ref(),
-            &[ctx.accounts.data_set.bump],
+            b"asset".as_ref(),
+            ctx.accounts.asset.hash_id.as_ref(),
+            &[ctx.accounts.asset.bump],
         ];
 
-        // call transfer from authority (buyer) to dataset authority (seller)
+        // call transfer from authority (buyer) to Asset authority (seller)
         transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
-                    from: ctx.accounts.buyer_vault.to_account_info(),
-                    to: ctx.accounts.seller_vault.to_account_info(),
+                    from: ctx.accounts.buyer_transfer_vault.to_account_info(),
+                    to: ctx.accounts.seller_transfer_vault.to_account_info(),
                     authority: ctx.accounts.authority.to_account_info(),
                 },
             ),
             ctx.accounts
-                .master_edition_info
+                .asset
                 .price
-                .checked_mul(quantity.into())
+                .checked_mul(exemplars.into())
                 .unwrap()
                 .into(),
         )?;
@@ -132,65 +131,44 @@ pub mod fishplace {
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 MintTo {
-                    mint: ctx.accounts.master_edition_mint.to_account_info(),
-                    to: ctx.accounts.buyer_master_edition_vault.to_account_info(),
-                    authority: ctx.accounts.data_set.to_account_info(),
+                    mint: ctx.accounts.token_mint.to_account_info(),
+                    to: ctx.accounts.buyer_minted_token_vault.to_account_info(),
+                    authority: ctx.accounts.asset.to_account_info(),
                 },
                 &[&seeds[..]],
             ),
-            quantity.into()
+            exemplars.into()
         )?;
 
         Ok(())
     }
 
-    pub fn use_data_set(ctx: Context<UseDataSet>, quantity: u32) -> Result<()> {
-        (*ctx.accounts.master_edition_info).used += quantity;
+    pub fn use_asset(ctx: Context<UseAsset>, exemplars: u32) -> Result<()> {
+        (*ctx.accounts.asset).used += exemplars;
 
         burn(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
                 Burn {
                     authority: ctx.accounts.authority.to_account_info(),
-                    from: ctx.accounts.buyer_master_edition_vault.to_account_info(),
-                    mint: ctx.accounts.master_edition_mint.to_account_info(),
+                    from: ctx.accounts.buyer_minted_token_vault.to_account_info(),
+                    mint: ctx.accounts.token_mint.to_account_info(),
                 },
             ),
-            quantity.into(),
+            exemplars.into(),
         )?;
 
         Ok(())
     }
 
-    pub fn delete_data_set(_ctx: Context<DeleteDataSet>) -> Result<()> {
+    pub fn delete_asset(_ctx: Context<DeleteAsset>) -> Result<()> {
         Ok(())
     }
 }
 
 #[derive(Accounts)]
 #[instruction(hash_id: String)]
-pub struct CreateDataSet<'info> {
-    pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
-    pub rent: Sysvar<'info, Rent>,
-    #[account(mut)]
-    pub authority: Signer<'info>,
-    #[account(
-        init,
-        payer = authority,
-        space = DataSet::SIZE,
-        seeds = [
-            b"data_set".as_ref(),
-            hash_id.as_ref(),
-        ],
-        bump
-    )]
-    pub data_set: Account<'info, DataSet>,
-    pub mint: Account<'info, Mint>,
-}
-
-#[derive(Accounts)]
-pub struct CreateMasterEdition<'info> {
+pub struct CreateAsset<'info> {
     /// CHECK: contraint added to force using actual metaplex metadata program
     #[account(address = mpl_metadata_program, executable)]
     pub metadata_program: UncheckedAccount<'info>,
@@ -200,53 +178,61 @@ pub struct CreateMasterEdition<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     #[account(
-        seeds = [
-            b"data_set".as_ref(),
-            data_set.hash_id.as_ref()
-        ], 
-        bump = data_set.bump
-    )]
-    pub data_set: Account<'info, DataSet>,
-    #[account(
         init,
         payer = authority,
-        space = MasterEditionInfo::SIZE,
+        space = Asset::SIZE,
         seeds = [
-            b"master_edition_info".as_ref(),
-            data_set.key().as_ref(),
+            b"asset".as_ref(),
+            hash_id.as_ref()
         ],
         bump,
     )]
-    pub master_edition_info: Account<'info, MasterEditionInfo>,
+    pub asset: Account<'info, Asset>,
+    pub accepted_mint: Account<'info, Mint>,
     #[account(
         init,
         payer = authority,
         mint::decimals = 0,
-        mint::authority = data_set,
+        mint::authority = asset,
         seeds = [
-            b"master_edition_mint".as_ref(),
-            data_set.key().as_ref(),
-            master_edition_info.key().as_ref(),
+            b"token_mint".as_ref(),
+            asset.key().as_ref(),
         ],
         bump,
     )]
-    pub master_edition_mint: Account<'info, Mint>,
+    pub asset_token_mint: Account<'info, Mint>,
     /// CHECK: this will be verified by token metadata program
     #[account(
         mut,
         seeds = [
             b"metadata".as_ref(),
             metadata_program.key().as_ref(),
-            master_edition_mint.key().as_ref(),
+            asset_token_mint.key().as_ref(),
         ],
         bump,
         seeds::program = metadata_program.key()
     )]
-    pub master_edition_metadata: UncheckedAccount<'info>,
+    pub token_metadata: UncheckedAccount<'info>,
 }
 
 #[derive(Accounts)]
-pub struct BuyDataSet<'info> {
+pub struct EditAssetPrice<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [
+            b"asset".as_ref(),
+            asset.hash_id.as_ref()
+        ], 
+        bump = asset.bump,
+        constraint = asset.authority == authority.key()
+    )]
+    pub asset: Account<'info, Asset>,
+}
+
+#[derive(Accounts)]
+pub struct BuyAsset<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -254,51 +240,42 @@ pub struct BuyDataSet<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     #[account(
-        seeds = [
-            b"data_set".as_ref(),
-            data_set.hash_id.as_ref(),
-        ],
-        bump = data_set.bump
-    )]
-    pub data_set: Account<'info, DataSet>,
-    #[account(
         mut,
         seeds = [
-            b"master_edition_info".as_ref(),
-            data_set.key().as_ref(),
+            b"asset".as_ref(),
+            asset.hash_id.as_ref(),
         ],
-        bump = master_edition_info.bump,
+        bump = asset.bump
     )]
-    pub master_edition_info: Account<'info, MasterEditionInfo>,
+    pub asset: Account<'info, Asset>,
     #[account(
         mut,
-        constraint = buyer_vault.mint == data_set.mint @ ErrorCode::WrongBuyerMintProvided
+        constraint = buyer_transfer_vault.mint == asset.accepted_mint @ ErrorCode::WrongBuyerMintProvided
     )]
-    pub buyer_vault: Account<'info, TokenAccount>, // buyer token account to pay
+    pub buyer_transfer_vault: Account<'info, TokenAccount>, // buyer token account to pay
     #[account(
         mut,
-        constraint = seller_vault.mint == data_set.mint @ ErrorCode::WrongSellerMintProvided
+        constraint = seller_transfer_vault.mint == asset.accepted_mint @ ErrorCode::WrongSellerMintProvided
     )]
-    pub seller_vault: Account<'info, TokenAccount>,
+    pub seller_transfer_vault: Account<'info, TokenAccount>,
     #[account(
         mut,
         seeds = [
-            b"master_edition_mint".as_ref(),
-            data_set.key().as_ref(),
-            master_edition_info.key().as_ref(),
+            b"token_mint".as_ref(),
+            asset.key().as_ref(),
         ],
-        bump = master_edition_info.mint_bump
+        bump = asset.mint_bump
     )]
-    pub master_edition_mint: Account<'info, Mint>,
+    pub token_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = buyer_master_edition_vault.mint == master_edition_mint.key() @ ErrorCode::WrongMasterEditionTokenAccount
+        constraint = buyer_minted_token_vault.mint == token_mint.key() @ ErrorCode::WrongTokenAccount
     )]
-    pub buyer_master_edition_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store nft
+    pub buyer_minted_token_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store Asset token
 }
 
 #[derive(Accounts)]
-pub struct UseDataSet<'info> {
+pub struct UseAsset<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -306,106 +283,79 @@ pub struct UseDataSet<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     #[account(
+        mut,
         seeds = [
-            b"data_set".as_ref(),
-            data_set.hash_id.as_ref(),
+            b"asset".as_ref(),
+            asset.hash_id.as_ref(),
         ],
-        bump = data_set.bump
+        bump = asset.bump,
     )]
-    pub data_set: Account<'info, DataSet>,
+    pub asset: Account<'info, Asset>,
     #[account(
         mut,
         seeds = [
-            b"master_edition_info".as_ref(),
-            data_set.key().as_ref(),
+            b"token_mint".as_ref(),
+            asset.key().as_ref(),
         ],
-        bump = master_edition_info.bump,
-        constraint = buyer_master_edition_vault.owner == authority.key() @ ErrorCode::WrongOwnerOfTheNFT
+        bump = asset.mint_bump,
+        constraint = buyer_minted_token_vault.owner == authority.key() @ ErrorCode::WrongTokenOwner
     )]
-    pub master_edition_info: Account<'info, MasterEditionInfo>,
+    pub token_mint: Account<'info, Mint>,
     #[account(
         mut,
-        seeds = [
-            b"master_edition_mint".as_ref(),
-            data_set.key().as_ref(),
-            master_edition_info.key().as_ref(),
-        ],
-        bump = master_edition_info.mint_bump,
+        constraint = buyer_minted_token_vault.mint == token_mint.key() @ ErrorCode::WrongTokenAccount
     )]
-    pub master_edition_mint: Account<'info, Mint>,
-    #[account(
-        mut,
-        constraint = buyer_master_edition_vault.mint == master_edition_mint.key() @ ErrorCode::WrongMasterEditionTokenAccount
-    )]
-    pub buyer_master_edition_vault: Box<Account<'info, TokenAccount>>,
+    pub buyer_minted_token_vault: Box<Account<'info, TokenAccount>>,
 }
 
 #[derive(Accounts)]
-pub struct DeleteDataSet<'info> {
+pub struct DeleteAsset<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     #[account(
         mut,
         seeds = [
-            b"data_set".as_ref(),
-            data_set.hash_id.as_ref(),
+            b"asset".as_ref(),
+            asset.hash_id.as_ref(),
         ],
         close = authority,
-        bump = data_set.bump,
-        constraint = data_set.authority == authority.key()
+        bump = asset.bump,
+        constraint = asset.authority == authority.key()
     )]
-    pub data_set: Account<'info, DataSet>,
-    #[account(
-        mut,
-        seeds = [
-            b"master_edition_info".as_ref(),
-            data_set.key().as_ref(),
-        ],
-        bump = master_edition_info.bump,
-        close = authority,
-        constraint = data_set.authority == authority.key() @ ErrorCode::WrongOwnerOfTheNFT
-    )]
-    pub master_edition_info: Account<'info, MasterEditionInfo>,
+    pub asset: Account<'info, Asset>,
 }
+
 #[account]
-pub struct DataSet {
-    pub hash_id: String, // limited to 32 bits
-    pub title: String, // limited to 32 bits
-    pub mint: Pubkey,
+pub struct Asset {
+    pub app_name: String, // to discriminate between different apps accounts, limited to 32 bytes
+    pub hash_id: String, // limited to 32 bytes
+    pub item_hash: String, // limited to 64 bytes
+    pub accepted_mint: Pubkey,
     pub authority: Pubkey,
-    pub bump: u8,
-}
-
-impl DataSet {
-    pub const SIZE: usize = 8 + 36 + 36 + 32 + 32 + 1;
-}
-
-#[account]
-pub struct MasterEditionInfo {
     pub price: u32,
-    pub quantity: u32,
     pub sold: u32,
     pub used: u32,
-    pub unlimited_quantity: bool,
+    pub exemplars: i32,
+    pub quantity_per_exemplars: u32,
     pub bump: u8,
     pub mint_bump: u8,
     pub metadata_bump: u8,
 }
 
-impl MasterEditionInfo {
-    pub const SIZE: usize = 8 + 4 + 4 + 4 + 4 + 1 + 1 + 1 + 1;
+impl Asset {
+    pub const SIZE: usize = 8 + 36 + 36 + 68 + 32 + 32 + 4 + 4 + 4 + 4 + 4 + 1 + 1 + 1;
 }
 
 #[error_code]
 pub enum ErrorCode {
-    #[msg("There are not enough NFTs to buy.")]
-    NotEnoughMintsAvailable,
+    #[msg("There are not enough token to buy")]
+    NotEnoughTokensAvailable,
     #[msg("You are providing a wrong seller mint")]
     WrongSellerMintProvided,
-    #[msg("You are providing a wrong buyer mint.")]
+    #[msg("You are providing a wrong buyer mint")]
     WrongBuyerMintProvided,
-    #[msg("You are providing a wrong token account where the dataset NFT is stored.")]
-    WrongMasterEditionTokenAccount,
-    #[msg("You are trying to use an NFT that you don't own.")]
-    WrongOwnerOfTheNFT,
+    #[msg("You are providing a wrong token account where the Asset token is stored")]
+    WrongTokenAccount,
+    #[msg("You are trying to use an token that you don't own")]
+    WrongTokenOwner,
 }

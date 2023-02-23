@@ -19,58 +19,45 @@ export async function initNewAccounts(
   const acceptedMintPublicKey = await createMint(provider);
   const hashIdAux: string = uuid();
   const hashId = hashIdAux.substring(0, 32);
-  const [dataSetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("data_set", "utf-8"), anchor.utils.bytes.utf8.encode(hashId)],
+  const [assetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("asset", "utf-8"), anchor.utils.bytes.utf8.encode(hashId)],
     program.programId
   );
-  const [masterEditionInfoPublicKey] =
-    anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("master_edition_info", "utf-8"),
-        dataSetPublicKey.toBuffer(),
-      ],
-      program.programId
-    );
-  const [masterEditionMint] = anchor.web3.PublicKey.findProgramAddressSync(
-    [
-      Buffer.from("master_edition_mint", "utf-8"),
-      dataSetPublicKey.toBuffer(),
-      masterEditionInfoPublicKey.toBuffer(),
-    ],
+  const [tokenMint] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("token_mint", "utf-8"), assetPublicKey.toBuffer()],
     program.programId
   );
   const buyerKeypair = await createFundedWallet(provider, 20);
-  const buyerAssociatedTokenMasterEditionPublicKey =
-    await getAssociatedTokenAddress(masterEditionMint, buyerKeypair.publicKey);
-  let buyerAssociatedTokenToPayPublicKey = undefined;
-  let sellerTokenAccountToBePaidPublicKey = undefined;
+  const buyerMintedTokenVault = await getAssociatedTokenAddress(
+    tokenMint,
+    buyerKeypair.publicKey
+  );
+  let buyerTransferVault = undefined;
+  let sellerTransferVault = undefined;
   if (buyerBalance && sellerBalance) {
-    buyerAssociatedTokenToPayPublicKey =
-      await createFundedAssociatedTokenAccount(
-        provider,
-        acceptedMintPublicKey,
-        buyerBalance,
-        buyerKeypair
-      );
-    sellerTokenAccountToBePaidPublicKey =
-      await createFundedAssociatedTokenAccount(
-        provider,
-        acceptedMintPublicKey,
-        sellerBalance,
-        sellerKeypair
-      );
+    buyerTransferVault = await createFundedAssociatedTokenAccount(
+      provider,
+      acceptedMintPublicKey,
+      buyerBalance,
+      buyerKeypair
+    );
+    sellerTransferVault = await createFundedAssociatedTokenAccount(
+      provider,
+      acceptedMintPublicKey,
+      sellerBalance,
+      sellerKeypair
+    );
   }
 
   return {
     sellerKeypair,
     acceptedMintPublicKey,
     hashId,
-    dataSetPublicKey,
-    masterEditionInfoPublicKey,
-    masterEditionMint,
+    assetPublicKey,
+    tokenMint,
     buyerKeypair,
-    buyerAssociatedTokenToPayPublicKey,
-    buyerAssociatedTokenMasterEditionPublicKey,
-    sellerTokenAccountToBePaidPublicKey,
+    buyerMintedTokenVault,
+    buyerTransferVault,
+    sellerTransferVault,
   };
 }

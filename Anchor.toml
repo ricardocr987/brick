@@ -2,7 +2,7 @@
 seeds = true
 
 [programs.localnet]
-fishplace = "AxDTdwnYddq8jZB2Xouons961sv3sHSRHZuvGDuoVU2G"
+fishplace = "FiShPdUdNuvhF9qETghrDWXiiAR8X2ujeGfGwSC84d4P"
 
 [registry]
 url = "https://api.apr.dev"
