@@ -38,6 +38,7 @@ describe("fishplace", () => {
     const sellerBalance = 2;
     const tokenPrice = 2;
     const exemplars = -1; // makes the token can be sold unlimited times
+    const exemplarsToBuy = 2;
     const quantityPerExemplars = 1;
     const {
       sellerKeypair,
@@ -103,21 +104,19 @@ describe("fishplace", () => {
     assert.equal(preBuyTokenMintAccount.decimals, 0);
     assert.equal(preBuyTokenMintAccount.supply, BigInt(0));
 
-    const metadata = await metaplex
-      .nfts()
-      .findByMint({ mintAddress: tokenMint });
-    assert.isDefined(metadata);
-    if (isNft(metadata)) {
-      assert.equal(metadata.updateAuthorityAddress, assetPublicKey);
-      assert.equal(metadata.mint.address, tokenMint);
-      assert.equal(metadata.mint.decimals, 0);
-      assert.isTrue(metadata.mint.supply.basisPoints.eq(new anchor.BN(0)));
-      assert.equal(metadata.json.name, tokenName);
-      assert.equal(metadata.json.symbol, tokenSymbol);
-      assert.equal(metadata.json.uri, tokenUri);
+    const token = await metaplex.nfts().findByMint({ mintAddress: tokenMint });
+    assert.isDefined(token);
+    if (isNft(token)) {
+      assert.equal(token.updateAuthorityAddress, assetPublicKey);
+      assert.equal(token.mint.address, tokenMint);
+      assert.equal(token.mint.decimals, 0);
+      assert.isTrue(token.mint.supply.basisPoints.eq(new anchor.BN(0)));
+      assert.equal(token.json.name, tokenName);
+      assert.equal(token.json.symbol, tokenSymbol);
+      assert.equal(token.json.uri, tokenUri);
     }
 
-    // initilizes buyer token account to store the nft copy
+    // initilizes buyer token account to store the token
     await provider.sendAndConfirm(
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
@@ -130,7 +129,7 @@ describe("fishplace", () => {
     );
 
     await program.methods
-      .buyAsset(2)
+      .buyAsset(exemplarsToBuy)
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
@@ -148,12 +147,14 @@ describe("fishplace", () => {
     // postTxInfo
     const assetAccount = await program.account.asset.fetch(assetPublicKey);
     assert.isDefined(assetAccount);
-    assert.equal(assetAccount.sold, 2);
+    assert.equal(assetAccount.sold, exemplarsToBuy);
 
     const tokenMintAccount = await getMint(provider.connection, tokenMint);
-    assert.equal(tokenMintAccount.supply, BigInt(2));
+    assert.equal(tokenMintAccount.supply, BigInt(exemplarsToBuy));
 
-    // check if the buyer is able to mint more nfts from the unit bought
+    // check if the buyer is able to mint more tokens from the units bought
+    // impossible, the mint authority is the asset pda, only is possible calling
+    // the buy ix that first requires the transfer
     try {
       await provider.sendAndConfirm(
         new anchor.web3.Transaction().add(
@@ -213,7 +214,7 @@ describe("fishplace", () => {
       .rpc()
       .catch(console.error);
 
-    // initilizes buyer token account to store the nft copy
+    // initilizes buyer token account to store the token
     await provider.sendAndConfirm(
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
@@ -244,24 +245,11 @@ describe("fishplace", () => {
     // postTxInfo
     const assetAccount = await program.account.asset.fetch(assetPublicKey);
     assert.isDefined(assetAccount);
-    assert.equal(assetAccount.sold, exemplars);
+    assert.equal(assetAccount.exemplars - exemplars, 0);
 
     const tokenMintAccount = await getMint(provider.connection, tokenMint);
     assert.equal(tokenMintAccount.supply, BigInt(exemplars));
 
-    const metadata = await metaplex
-      .nfts()
-      .findByMint({ mintAddress: tokenMint });
-    assert.isDefined(metadata);
-    if (isNft(metadata)) {
-      assert.equal(metadata.updateAuthorityAddress, assetPublicKey);
-      assert.equal(metadata.mint.address, tokenMint);
-      assert.equal(metadata.mint.decimals, 0);
-      assert.isTrue(metadata.mint.supply.basisPoints.eq(new anchor.BN(0)));
-      assert.equal(metadata.json.name, tokenName);
-      assert.equal(metadata.json.symbol, tokenSymbol);
-      assert.equal(metadata.json.uri, tokenUri);
-    }
     // check if the buyer is possible to buy more even available = 0
     try {
       await program.methods
@@ -360,7 +348,7 @@ describe("fishplace", () => {
     assert.isDefined(postPriceChangeAssetAccount);
     assert.equal(postPriceChangeAssetAccount.price, newTokenPrice);
 
-    // initilizes buyer token account to store the nft copy
+    // initilizes buyer token account to store the token
     await provider.sendAndConfirm(
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
@@ -396,7 +384,7 @@ describe("fishplace", () => {
       provider.connection,
       sellerTransferVault
     );
-    const nftMint = await getMint(provider.connection, tokenMint);
+    const mintedTokenMint = await getMint(provider.connection, tokenMint);
     const assetAccount = await program.account.asset.fetch(assetPublicKey);
     const buyerTokenVaultAccount = await getAccount(
       provider.connection,
@@ -420,11 +408,11 @@ describe("fishplace", () => {
     // Assert master edition account values changed
     assert.isDefined(buyerMintedTokenVault);
     assert.equal(buyerTokenVaultAccount.amount, BigInt(exemplarsToBuy));
-    assert.isDefined(nftMint);
-    assert.equal(nftMint.supply, BigInt(exemplarsToBuy));
+    assert.isDefined(mintedTokenMint);
+    assert.equal(mintedTokenMint.supply, BigInt(exemplarsToBuy));
   });
 
-  it("Uses data set, ie: it is burnt, as there shouldn't be more nfts to sell will close the asset account", async () => {
+  it("Use asset test: seller try to close account with tokens unused and when all used should allow to close the accounts", async () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const tokenPrice = 2;
@@ -465,7 +453,7 @@ describe("fishplace", () => {
       .rpc()
       .catch(console.error);
 
-    // initilizes buyer token account to store the nft copy
+    // initilizes buyer token account to store the token
     await provider.sendAndConfirm(
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
@@ -492,6 +480,23 @@ describe("fishplace", () => {
       )
       .rpc()
       .catch(console.error);
+
+    // seller tries to close accounts with unused tokens in the buyer wallet,
+    try {
+      await program.methods
+        .deleteAsset()
+        .accounts({
+          authority: sellerKeypair.publicKey,
+          asset: assetPublicKey,
+        })
+        .signers(
+          sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+        )
+        .rpc();
+    } catch (e) {
+      if (e as AnchorError)
+        assert.equal(e.error.errorCode.code, "BuyerWithTokenUnsed");
+    }
 
     // preTx info
     const preUseAssetAccount = await program.account.asset.fetch(
@@ -534,7 +539,8 @@ describe("fishplace", () => {
       .signers(
         sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
       )
-      .rpc();
+      .rpc()
+      .catch(console.error);
 
     try {
       await program.account.asset.fetch(assetPublicKey);
@@ -586,7 +592,7 @@ describe("fishplace", () => {
       .rpc()
       .catch(console.error);
 
-    // initilizes buyer token account to store the nft copy
+    // initilizes buyer token account to store the token
     await provider.sendAndConfirm(
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
@@ -620,15 +626,13 @@ describe("fishplace", () => {
             tokenMint: tokenMint,
             buyerMintedTokenVault: buyerMintedTokenVault,
           })
-          .instruction()
+          .instruction(),
       ])
       .rpc()
       .catch(console.error);
 
     // postTx info
-    const assetAccount = await program.account.asset.fetch(
-      assetPublicKey
-    );
+    const assetAccount = await program.account.asset.fetch(assetPublicKey);
     assert.isDefined(assetAccount);
     assert.equal(assetAccount.used, exemplars);
 

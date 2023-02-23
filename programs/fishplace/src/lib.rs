@@ -161,7 +161,11 @@ pub mod fishplace {
         Ok(())
     }
 
-    pub fn delete_asset(_ctx: Context<DeleteAsset>) -> Result<()> {
+    pub fn delete_asset(ctx: Context<DeleteAsset>) -> Result<()> {
+        if (*ctx.accounts.asset).sold > (*ctx.accounts.asset).used {
+                return Err(ErrorCode::BuyerWithTokenUnsed.into());
+        }
+
         Ok(())
     }
 }
@@ -358,4 +362,6 @@ pub enum ErrorCode {
     WrongTokenAccount,
     #[msg("You are trying to use an token that you don't own")]
     WrongTokenOwner,
+    #[msg("There are still buyers with the token available for use")]
+    BuyerWithTokenUnsed,
 }
