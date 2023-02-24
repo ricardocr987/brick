@@ -17,7 +17,7 @@ use mpl_token_metadata::{
 declare_id!("FiShPdUdNuvhF9qETghrDWXiiAR8X2ujeGfGwSC84d4P");
 
 #[program]
-pub mod fishplace {
+pub mod token_access {
     use super::*;
 
     pub fn create_asset(

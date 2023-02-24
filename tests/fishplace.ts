@@ -1,7 +1,6 @@
 import * as anchor from "@project-serum/anchor";
 import { Program, AnchorError } from "@project-serum/anchor";
 import { assert } from "chai";
-import { Fishplace } from "../target/types/fishplace";
 import {
   bundlrStorage,
   isNft,
@@ -15,11 +14,12 @@ import {
   createMintToInstruction,
 } from "@solana/spl-token";
 import { initNewAccounts } from "./utils";
+import { TokenAccess } from "../target/types/token_access";
 
-describe("fishplace", () => {
+describe("token_access", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const program = anchor.workspace.Fishplace as Program<Fishplace>;
+  const program = anchor.workspace.TokenAccess as Program<TokenAccess>;
 
   const metadataProgramPublicKey = new anchor.web3.PublicKey(
     "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"

@@ -1,17 +1,17 @@
 import { Program, AnchorProvider } from "@project-serum/anchor";
 import * as anchor from "@project-serum/anchor";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
-import { Fishplace } from "../../target/types/fishplace";
 import {
   createFundedWallet,
   createMint,
   createFundedAssociatedTokenAccount,
 } from ".";
 import { v4 as uuid } from "uuid";
+import { TokenAccess } from "../../target/types/token_access";
 
 export async function initNewAccounts(
   provider: AnchorProvider,
-  program: Program<Fishplace>,
+  program: Program<TokenAccess>,
   buyerBalance?: number,
   sellerBalance?: number
 ) {
