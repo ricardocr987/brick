@@ -1,0 +1,141 @@
+.sidebar_container {
+  display: none;
+}
+
+.sidebar_container_active {
+  position: fixed;
+  z-index: 999;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  display: grid;
+  align-items: center;
+  top: 0;
+  left: 0;
+  transition: 0.3s ease-in-out;
+  opacity: 100%;
+  top: 0;
+}
+
+.close_icon {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.5rem;
+  background: transparent;
+  font-size: 2rem;
+  cursor: pointer;
+  outline: none;
+  color: white;
+}
+
+.sidebar_wrapper {
+  color: #fff;
+}
+
+.sidebar_menu {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(6, 10px);
+  text-align: center;
+}
+
+.hide {
+  display: none;
+}
+
+.sidebar_links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  text-decoration: none;
+  list-style: none;
+  transition: 0.2s ease-in-out;
+  text-decoration: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+.sidebar_links:hover {
+  color: #fb85f2;
+  transition: 0.2s ease-in-out;
+  transform: translateY(-5px);
+}
+
+.social_links {
+  width: 100%;
+  height: 150px;
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.social_links::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 50%;
+  z-index: 1;
+  backdrop-filter: blur(5px);
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.row {
+  position: relative;
+  display: flex;
+  z-index: 2;
+}
+
+.row .column {
+  position: relative;
+  list-style: none;
+  margin: 10px;
+}
+
+.row .column a {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  border-radius: 10px;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  color: #fff;
+  font-size: 2em;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-right: 1px solid rgba(255, 255, 255, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 5px 45px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(2px);
+  transition: 0.5s;
+  overflow: hidden;
+}
+
+.row .column a:hover {
+  transform: translateY(-20px);
+}
+
+.row .column a::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: skewX(45deg) translateX(150px);
+  transition: 0.5s;
+}
+
+.row .column a:hover::before {
+  transform: skewX(45deg) translateX(-150px);
+}
+
+@media screen and (max-width: 960px) {
+  .sidebar_menu {
+    grid-template-rows: repeat(6, 10px);
+  }
+}
