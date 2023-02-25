@@ -38,7 +38,12 @@ export const Navbar = ({ NavItems }: NavProps) => {
               : styles.navbar_container
           }
         >
-          <div className={styles.navbar_logo}>Token Access</div>
+          <div className={styles.navbar_logo}>
+            <img
+              src="logo.svg"
+              height="50"
+              width="100" />
+          </div>
 
           <div className={styles.mobile_icon}>
             {
