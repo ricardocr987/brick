@@ -20,6 +20,7 @@
 }
 
 .row {
+  fill:"#fff";
   position: relative;
   display: flex;
   z-index: 2;

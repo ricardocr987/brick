@@ -1,4 +1,3 @@
-//import { FaTwitter, FaGithub } from "react-icons/fa";
 import styles from "@/styles/components/Footer.module.css";
 
 export const Footer = () => {
@@ -7,20 +6,18 @@ export const Footer = () => {
       <div className={styles.row}>
         <div className={styles.column}>
           <a href="https://twitter.com/ricardocr987">
-            <i>
-              {
-                //<FaTwitter />
-              }
-            </i>
+              <img
+                src="twitter-square.svg"
+                height="50"
+                width="100" />
           </a>
         </div>
         <div className={styles.column}>
-          <a href="https://github.com/ricardocr987">
-            <i>
-              {
-                //<FaGithub />
-              }
-            </i>
+          <a href="https://github.com/ricardocr987/token_access">
+              <img
+                  src="github-square.svg"
+                  height="55"
+                  width="100" />
           </a>
         </div>
       </div>
