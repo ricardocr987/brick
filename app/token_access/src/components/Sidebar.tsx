@@ -23,11 +23,11 @@ export const Sidebar = ({ NavItems, sidebar, showSidebar }: NavProps) => {
       </div>
       <div className={styles.sidebar_menu}>
         { NavItems.map(route => (
-          <Link href={route.url} passHref onClick={showSidebar}>
-            <div className={styles.sidebar_links} key={route.key}>
-              {route.label}
-            </div>
-          </Link>
+          <div className={styles.sidebar_links} key={route.key}>
+            <Link href={route.url} passHref onClick={showSidebar}>
+                {route.label}
+            </Link>
+          </div>
         ))}
       </div>
       <div className={styles.social_links}>
