@@ -144,6 +144,32 @@ pub mod token_access {
         Ok(())
     }
 
+    pub fn share_asset(ctx: Context<ShareAsset>, exemplars: u32) -> Result<()> {
+        (*ctx.accounts.asset).shared += exemplars;
+
+        let seeds = &[
+            b"asset".as_ref(),
+            ctx.accounts.asset.hash_id.as_ref(),
+            &[ctx.accounts.asset.bump],
+        ];
+
+        // call mintTo instruction
+        mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                MintTo {
+                    mint: ctx.accounts.asset_mint.to_account_info(),
+                    to: ctx.accounts.receiver_minted_token_vault.to_account_info(),
+                    authority: ctx.accounts.asset.to_account_info(),
+                },
+                &[&seeds[..]],
+            ),
+            exemplars.into()
+        )?;
+
+        Ok(())
+    }
+
     pub fn use_asset(ctx: Context<UseAsset>, exemplars: u32) -> Result<()> {
         (*ctx.accounts.asset).used += exemplars;
 
@@ -231,7 +257,7 @@ pub struct EditAssetPrice<'info> {
             asset.hash_id.as_ref()
         ], 
         bump = asset.bump,
-        constraint = asset.authority == authority.key()
+        constraint = asset.authority == authority.key() @ ErrorCode::WrongAssetAuthority
     )]
     pub asset: Account<'info, Asset>,
 }
@@ -280,6 +306,40 @@ pub struct BuyAsset<'info> {
 }
 
 #[derive(Accounts)]
+pub struct ShareAsset<'info> {
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub rent: Sysvar<'info, Rent>,
+    #[account(mut)]
+    pub authority: Signer<'info>, // seller
+    #[account(
+        mut,
+        seeds = [
+            b"asset".as_ref(),
+            asset.hash_id.as_ref(),
+        ],
+        bump = asset.bump,
+        constraint = authority.key() == asset.authority @ ErrorCode::WrongAssetAuthority
+    )]
+    pub asset: Account<'info, Asset>,
+    #[account(
+        mut,
+        seeds = [
+            b"asset_mint".as_ref(),
+            asset.key().as_ref(),
+        ],
+        bump = asset.mint_bump
+    )]
+    pub asset_mint: Account<'info, Mint>,
+    #[account(
+        mut,
+        constraint = receiver_minted_token_vault.mint == asset_mint.key() @ ErrorCode::WrongTokenAccount
+    )]
+    pub receiver_minted_token_vault: Box<Account<'info, TokenAccount>>,
+}
+
+#[derive(Accounts)]
 pub struct UseAsset<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -303,12 +363,12 @@ pub struct UseAsset<'info> {
             asset.key().as_ref(),
         ],
         bump = asset.mint_bump,
-        constraint = buyer_minted_token_vault.owner == authority.key() @ ErrorCode::WrongTokenOwner
+        constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::WrongTokenAccount
     )]
     pub asset_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::WrongTokenAccount
+        constraint = buyer_minted_token_vault.owner == authority.key() @ ErrorCode::WrongTokenOwner
     )]
     pub buyer_minted_token_vault: Box<Account<'info, TokenAccount>>,
 }
@@ -325,7 +385,7 @@ pub struct DeleteAsset<'info> {
         ],
         close = authority,
         bump = asset.bump,
-        constraint = asset.authority == authority.key()
+        constraint = asset.authority == authority.key() @ ErrorCode::WrongAssetAuthority
     )]
     pub asset: Account<'info, Asset>,
 }
@@ -341,6 +401,7 @@ pub struct Asset {
     pub price: u32,
     pub sold: u32,
     pub used: u32,
+    pub shared: u32,
     pub exemplars: i32,
     pub quantity_per_exemplars: u32,
     pub bump: u8,
@@ -349,12 +410,12 @@ pub struct Asset {
 }
 
 impl Asset {
-    pub const SIZE: usize = 8 + 36 + 36 + 68 + 32 + 32 + 32 + 4 + 4 + 4 + 4 + 4 + 1 + 1 + 1;
+    pub const SIZE: usize = 8 + 36 + 36 + 68 + 32 + 32 + 32 + 4 + 4 + 4 + 4 + 4 + 4 + 1 + 1 + 1;
 }
 
 #[error_code]
 pub enum ErrorCode {
-    #[msg("There are not enough token to buy")]
+    #[msg("There are not enough tokens to buy")]
     NotEnoughTokensAvailable,
     #[msg("You are providing a wrong seller mint")]
     WrongSellerMintProvided,
@@ -366,4 +427,6 @@ pub enum ErrorCode {
     WrongTokenOwner,
     #[msg("There are still buyers with the token available for use")]
     BuyerWithTokenUnsed,
+    #[msg("You are not the owner of this asset")]
+    WrongAssetAuthority
 }
