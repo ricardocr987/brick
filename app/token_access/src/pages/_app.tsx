@@ -8,7 +8,9 @@ import { Footer } from '@/components/Footer';
 const NavItems = [
   { label: "Home", url: "/", key: 1 },
   { label: "Apps", url: "/apps", key: 2 },
-  { label: "Create yours", url: "/createToken", key: 3 },
+  { label: "Create", url: "/createToken", key: 3 },
+  { label: "Give access", url: "/giveAccess", key: 4 },
+  { label: "My tokens", url: "/tokens", key: 5 },
 ];
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -23,11 +25,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <ContextProvider>
         <Navbar NavItems={NavItems} />
         <div className="container">
-          <div className="background">
-            <div className="content">
-              <Component {...pageProps} />
-              </div>
-          </div>
+            <Component {...pageProps} />
         </div>
         <Footer />
       </ContextProvider>

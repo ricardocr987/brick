@@ -32,10 +32,8 @@ export const Navbar = ({ NavItems }: NavProps) => {
         <div
           className={
             sidebar
-              ? styles.hide
-              : navbar
-              ? styles.navbar_container_active
-              : styles.navbar_container
+              ? styles.hide : navbar
+              ? styles.navbar_container_active : styles.navbar_container
           }
         >
           <div className={styles.navbar_logo}>
@@ -55,14 +53,13 @@ export const Navbar = ({ NavItems }: NavProps) => {
             {NavItems.map(route => {
               return  (
                 <div className={styles.nav_item} key={route.label}>
-                  <div className={styles.nav_links} key={route.key}>
-                    <Link href={route.url} passHref>
-                          {route.label}
-                    </Link>
-                  </div>
+                  <Link href={route.url} passHref>
+                    <div className={styles.nav_links} key={route.key}>
+                      {route.label}
+                    </div>
+                  </Link>
                 </div>
-              );
-              })}
+            )})}
           </div>
           <div className={styles.connect_wallet}>
             <WalletMultiButton />
