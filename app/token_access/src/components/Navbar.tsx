@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
-//import { FaBars } from "react-icons/fa";
 import Sidebar from "./Sidebar";
 import styles from "@/styles/components/Navbar.module.css";
 import Link from 'next/link';
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 interface NavProps {
-  NavItems: { label: string; url: string, key: number, comingSoon?: boolean }[];
+  NavItems: { label: string; url: string, key: number }[];
 }
 
 export const Navbar = ({ NavItems }: NavProps) => {
@@ -43,15 +42,12 @@ export const Navbar = ({ NavItems }: NavProps) => {
               width="100" />
           </div>
 
-          <div className={styles.mobile_icon}>
-            {
-              //<FaBars onClick={showSidebar} />
-            }
+          <div className={styles.mobile_icon} onClick={showSidebar}>
+            <img src="menu-burguer-icon.svg"/>
           </div>
 
           <div className={styles.nav_menu}>
-            {NavItems.map(route => {
-              return  (
+            { NavItems.map(route => (
                 <div className={styles.nav_item} key={route.label}>
                   <Link href={route.url} passHref>
                     <div className={styles.nav_links} key={route.key}>
@@ -59,7 +55,7 @@ export const Navbar = ({ NavItems }: NavProps) => {
                     </div>
                   </Link>
                 </div>
-            )})}
+            ))}
           </div>
           <div className={styles.connect_wallet}>
             <WalletMultiButton />

@@ -1,6 +1,5 @@
 //import { AiOutlineClose } from "react-icons/ai";
 import Link from "next/link";
-//import { FaTwitter, FaGithub } from "react-icons/fa";
 import styles from "@/styles/components/Sidebar.module.css";
 
 interface NavProps {
@@ -18,43 +17,39 @@ export const Sidebar = ({ NavItems, sidebar, showSidebar }: NavProps) => {
       }
     >
       <div className={styles.close_icon}>
-        {
-          //<AiOutlineClose />
-        }
+        <img src="close-icon.svg"
+          height="40"
+          width="40" />
       </div>
-      <div className={styles.sidebar_wrapper}>
-        {NavItems.map((route: any) => (
-          <div className={styles.sidebar_menu} key={route.label}>
-            <div onClick={showSidebar} className={styles.sidebar_links}>
-              <Link href={`/${route.label}`}>
-                {route.label}
-              </Link>
+      <div className={styles.sidebar_menu}>
+        { NavItems.map(route => (
+          <Link href={route.url} passHref onClick={showSidebar}>
+            <div className={styles.sidebar_links} key={route.key}>
+              {route.label}
             </div>
-          </div>
+          </Link>
         ))}
-        <div className={styles.social_links}>
+      </div>
+      <div className={styles.social_links}>
           <div className={styles.row}>
             <div className={styles.column}>
               <a href="https://twitter.com/ricardocr987">
-                <i>
-                  {
-                    //<FaTwitter />
-                  }
-                </i>
+                  <img
+                    src="twitter-square.svg"
+                    height="50"
+                    width="100" />
               </a>
             </div>
             <div className={styles.column}>
-              <a href="https://github.com/ricardocr987">
-                <i>
-                  {
-                    //<FaGithub />
-                  }
-                </i>
+              <a href="https://github.com/ricardocr987/token_access">
+                <img
+                  src="github-square.svg"
+                  height="55"
+                  width="100" />
               </a>
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 };
