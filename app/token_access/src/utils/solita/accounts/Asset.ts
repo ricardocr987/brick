@@ -24,6 +24,7 @@ export type AssetArgs = {
   price: number
   sold: number
   used: number
+  shared: number
   exemplars: number
   quantityPerExemplars: number
   bump: number
@@ -50,6 +51,7 @@ export class Asset implements AssetArgs {
     readonly price: number,
     readonly sold: number,
     readonly used: number,
+    readonly shared: number,
     readonly exemplars: number,
     readonly quantityPerExemplars: number,
     readonly bump: number,
@@ -71,6 +73,7 @@ export class Asset implements AssetArgs {
       args.price,
       args.sold,
       args.used,
+      args.shared,
       args.exemplars,
       args.quantityPerExemplars,
       args.bump,
@@ -193,6 +196,7 @@ export class Asset implements AssetArgs {
       price: this.price,
       sold: this.sold,
       used: this.used,
+      shared: this.shared,
       exemplars: this.exemplars,
       quantityPerExemplars: this.quantityPerExemplars,
       bump: this.bump,
@@ -223,6 +227,7 @@ export const assetBeet = new beet.FixableBeetStruct<
     ['price', beet.u32],
     ['sold', beet.u32],
     ['used', beet.u32],
+    ['shared', beet.u32],
     ['exemplars', beet.i32],
     ['quantityPerExemplars', beet.u32],
     ['bump', beet.u8],

@@ -12,7 +12,7 @@ const createErrorFromCodeLookup: Map<number, () => ErrorWithCode> = new Map()
 const createErrorFromNameLookup: Map<string, () => ErrorWithCode> = new Map()
 
 /**
- * NotEnoughTokensAvailable: 'There are not enough token to buy'
+ * NotEnoughTokensAvailable: 'There are not enough tokens to buy'
  *
  * @category Errors
  * @category generated
@@ -21,7 +21,7 @@ export class NotEnoughTokensAvailableError extends Error {
   readonly code: number = 0x1770
   readonly name: string = 'NotEnoughTokensAvailable'
   constructor() {
-    super('There are not enough token to buy')
+    super('There are not enough tokens to buy')
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, NotEnoughTokensAvailableError)
     }
@@ -129,26 +129,49 @@ createErrorFromNameLookup.set(
 )
 
 /**
- * BuyerWithTokenUnsed: 'There are still buyers with the token available for use'
+ * UnusedTokenExists: 'There are still users with the token available for use'
  *
  * @category Errors
  * @category generated
  */
-export class BuyerWithTokenUnsedError extends Error {
+export class UnusedTokenExistsError extends Error {
   readonly code: number = 0x1775
-  readonly name: string = 'BuyerWithTokenUnsed'
+  readonly name: string = 'UnusedTokenExists'
   constructor() {
-    super('There are still buyers with the token available for use')
+    super('There are still users with the token available for use')
     if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, BuyerWithTokenUnsedError)
+      Error.captureStackTrace(this, UnusedTokenExistsError)
     }
   }
 }
 
-createErrorFromCodeLookup.set(0x1775, () => new BuyerWithTokenUnsedError())
+createErrorFromCodeLookup.set(0x1775, () => new UnusedTokenExistsError())
 createErrorFromNameLookup.set(
-  'BuyerWithTokenUnsed',
-  () => new BuyerWithTokenUnsedError(),
+  'UnusedTokenExists',
+  () => new UnusedTokenExistsError(),
+)
+
+/**
+ * WrongAssetAuthority: 'You are not the owner of this asset'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class WrongAssetAuthorityError extends Error {
+  readonly code: number = 0x1776
+  readonly name: string = 'WrongAssetAuthority'
+  constructor() {
+    super('You are not the owner of this asset')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, WrongAssetAuthorityError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1776, () => new WrongAssetAuthorityError())
+createErrorFromNameLookup.set(
+  'WrongAssetAuthority',
+  () => new WrongAssetAuthorityError(),
 )
 
 /**

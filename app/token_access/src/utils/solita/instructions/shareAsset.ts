@@ -11,101 +11,78 @@ import * as web3 from '@solana/web3.js'
 
 /**
  * @category Instructions
- * @category CreateAsset
+ * @category ShareAsset
  * @category generated
  */
-export type CreateAssetInstructionArgs = {
-  hashId: string
-  appName: string
-  itemHash: string
-  tokenPrice: number
+export type ShareAssetInstructionArgs = {
   exemplars: number
-  quantityPerExemplars: number
-  tokenName: string
-  tokenSymbol: string
-  tokenUri: string
 }
 /**
  * @category Instructions
- * @category CreateAsset
+ * @category ShareAsset
  * @category generated
  */
-export const createAssetStruct = new beet.FixableBeetArgsStruct<
-  CreateAssetInstructionArgs & {
+export const shareAssetStruct = new beet.BeetArgsStruct<
+  ShareAssetInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['hashId', beet.utf8String],
-    ['appName', beet.utf8String],
-    ['itemHash', beet.utf8String],
-    ['tokenPrice', beet.u32],
-    ['exemplars', beet.i32],
-    ['quantityPerExemplars', beet.u32],
-    ['tokenName', beet.utf8String],
-    ['tokenSymbol', beet.utf8String],
-    ['tokenUri', beet.utf8String],
+    ['exemplars', beet.u32],
   ],
-  'CreateAssetInstructionArgs',
+  'ShareAssetInstructionArgs',
 )
 /**
- * Accounts required by the _createAsset_ instruction
+ * Accounts required by the _shareAsset_ instruction
  *
- * @property [] metadataProgram
+ * @property [] associatedTokenProgram
  * @property [_writable_, **signer**] authority
- * @property [_writable_] assetMint
  * @property [_writable_] asset
- * @property [] acceptedMint
- * @property [_writable_] tokenMetadata
+ * @property [_writable_] assetMint
+ * @property [_writable_] receiverMintedTokenVault
  * @category Instructions
- * @category CreateAsset
+ * @category ShareAsset
  * @category generated
  */
-export type CreateAssetInstructionAccounts = {
-  metadataProgram: web3.PublicKey
+export type ShareAssetInstructionAccounts = {
   systemProgram?: web3.PublicKey
   tokenProgram?: web3.PublicKey
+  associatedTokenProgram: web3.PublicKey
   rent?: web3.PublicKey
   authority: web3.PublicKey
-  assetMint: web3.PublicKey
   asset: web3.PublicKey
-  acceptedMint: web3.PublicKey
-  tokenMetadata: web3.PublicKey
+  assetMint: web3.PublicKey
+  receiverMintedTokenVault: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const createAssetInstructionDiscriminator = [
-  28, 42, 120, 51, 7, 38, 156, 136,
+export const shareAssetInstructionDiscriminator = [
+  135, 143, 194, 55, 137, 51, 31, 224,
 ]
 
 /**
- * Creates a _CreateAsset_ instruction.
+ * Creates a _ShareAsset_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category CreateAsset
+ * @category ShareAsset
  * @category generated
  */
-export function createCreateAssetInstruction(
-  accounts: CreateAssetInstructionAccounts,
-  args: CreateAssetInstructionArgs,
+export function createShareAssetInstruction(
+  accounts: ShareAssetInstructionAccounts,
+  args: ShareAssetInstructionArgs,
   programId = new web3.PublicKey(
     'FiShPdUdNuvhF9qETghrDWXiiAR8X2ujeGfGwSC84d4P',
   ),
 ) {
-  const [data] = createAssetStruct.serialize({
-    instructionDiscriminator: createAssetInstructionDiscriminator,
+  const [data] = shareAssetStruct.serialize({
+    instructionDiscriminator: shareAssetInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [
-    {
-      pubkey: accounts.metadataProgram,
-      isWritable: false,
-      isSigner: false,
-    },
     {
       pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
       isWritable: false,
@@ -113,6 +90,11 @@ export function createCreateAssetInstruction(
     },
     {
       pubkey: accounts.tokenProgram ?? splToken.TOKEN_PROGRAM_ID,
+      isWritable: false,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.associatedTokenProgram,
       isWritable: false,
       isSigner: false,
     },
@@ -127,22 +109,17 @@ export function createCreateAssetInstruction(
       isSigner: true,
     },
     {
-      pubkey: accounts.assetMint,
-      isWritable: true,
-      isSigner: false,
-    },
-    {
       pubkey: accounts.asset,
       isWritable: true,
       isSigner: false,
     },
     {
-      pubkey: accounts.acceptedMint,
-      isWritable: false,
+      pubkey: accounts.assetMint,
+      isWritable: true,
       isSigner: false,
     },
     {
-      pubkey: accounts.tokenMetadata,
+      pubkey: accounts.receiverMintedTokenVault,
       isWritable: true,
       isSigner: false,
     },

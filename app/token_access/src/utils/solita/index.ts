@@ -1,7 +1,9 @@
+import { AccountMeta, PublicKey } from '@solana/web3.js'
 export * from './accounts/index.js'
 export * from './instructions/index.js'
+export * from './instructions.js'
+export * from './accounts.js'
 
-import { AccountMeta, PublicKey } from '@solana/web3.js'
 import { Asset, AssetArgs } from './accounts/index.js'
 
 export type CreateAssetInstruction = {
@@ -16,9 +18,9 @@ export const CreateAssetAccounts = [
   'tokenProgram',
   'rent',
   'authority',
+  'assetMint',
   'asset',
   'acceptedMint',
-  'assetMint',
   'tokenMetadata',
 ]
 
@@ -47,6 +49,23 @@ export const BuyAssetAccounts = [
   'sellerTransferVault',
   'assetMint',
   'buyerMintedTokenVault',
+]
+
+export type ShareAssetInstruction = {
+  programId: PublicKey
+  keys: AccountMeta[]
+  data: Buffer
+}
+
+export const ShareAssetAccounts = [
+  'systemProgram',
+  'tokenProgram',
+  'associatedTokenProgram',
+  'rent',
+  'authority',
+  'asset',
+  'assetMint',
+  'receiverMintedTokenVault',
 ]
 
 export type UseAssetInstruction = {
@@ -78,9 +97,9 @@ export type ParsedInstructions =
   | CreateAssetInstruction
   | EditAssetPriceInstruction
   | BuyAssetInstruction
+  | ShareAssetInstruction
   | UseAssetInstruction
   | DeleteAssetInstruction
-
 export type ParsedAccounts = Asset
 
 export type ParsedAccountsData = AssetArgs
