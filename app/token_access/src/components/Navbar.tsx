@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import styles from "@/styles/components/Navbar.module.css";
 import Link from 'next/link';
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import dynamic from 'next/dynamic'
+const WalletMultiButtonDynamic = dynamic(
+  async () => (await import('@solana/wallet-adapter-react-ui')).WalletMultiButton,
+  { ssr: false }
+);
 
 interface NavProps {
   NavItems: { label: string; url: string, key: number }[];
@@ -58,7 +62,7 @@ export const Navbar = ({ NavItems }: NavProps) => {
             ))}
           </div>
           <div className={styles.connect_wallet}>
-            <WalletMultiButton />
+            <WalletMultiButtonDynamic />
           </div>
         </div>
       </div>
