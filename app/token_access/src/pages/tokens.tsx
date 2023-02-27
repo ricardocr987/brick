@@ -1,13 +1,11 @@
-/*import { AccountLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { Connection } from "@solana/web3.js";
-import { GetStaticPaths } from "next";
+import { AccountLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { useEffect, useState } from "react";
 
-export async function getStaticProps() {
-    const connection: Connection = new Connection('https://solana-mainnet.g.alchemy.com/v2/UKpJEi5xcwjCtOXHye7pjfnkhbOUOqM2')
-    const wallet = useWallet()
+async function getTokens(publicKey: PublicKey, connection: Connection) {
     const tokensData = []
-    const response = await connection.getTokenAccountsByOwner(wallet.publicKey, { programId: TOKEN_PROGRAM_ID })
+    const response = await connection.getTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID })
 
     for (const tokenAccount of response.value){
         try {
@@ -23,14 +21,24 @@ export async function getStaticProps() {
         }
     }
 
-    return {
-        props: {
-            tokensData
-        }
-    }
-}*/
+    return tokensData
+}
 
-const UserTokensPage = ({tokensData}) => {
+const UserTokensPage = () => {
+    const wallet = useWallet()
+    const { connection } = useConnection()
+    const [tokens, setTokens] = useState([]);
+
+    useEffect(() => {
+        const setAccountState = async () => {
+          if (wallet.connected) {
+            const tokens = await getTokens(wallet.publicKey, connection)
+            setTokens(tokens)
+          }
+        }
+        setAccountState()
+    }, [wallet.connected]);
+    
     return (
         <h1>User tokens page</h1>
     )
