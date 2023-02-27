@@ -22,7 +22,7 @@ pub mod token_access {
 
     pub fn create_asset(
         ctx: Context<CreateAsset>,
-        hash_id: String, 
+        hash_id: String,
         app_name: String,
         item_hash: String,
         token_price: u32,
@@ -49,7 +49,7 @@ pub mod token_access {
         
         let seeds = &[
             b"asset".as_ref(),
-            ctx.accounts.asset.hash_id.as_ref(),
+            ctx.accounts.asset.asset_mint.as_ref(),
             &[ctx.accounts.asset.bump],
         ];
 
@@ -105,7 +105,7 @@ pub mod token_access {
 
         let seeds = &[
             b"asset".as_ref(),
-            ctx.accounts.asset.hash_id.as_ref(),
+            ctx.accounts.asset.asset_mint.as_ref(),
             &[ctx.accounts.asset.bump],
         ];
 
@@ -149,7 +149,7 @@ pub mod token_access {
 
         let seeds = &[
             b"asset".as_ref(),
-            ctx.accounts.asset.hash_id.as_ref(),
+            ctx.accounts.asset.asset_mint.as_ref(),
             &[ctx.accounts.asset.bump],
         ];
 
@@ -211,27 +211,31 @@ pub struct CreateAsset<'info> {
     #[account(
         init,
         payer = authority,
+        mint::decimals = 0,
+        mint::authority = asset,
+        seeds = [
+            b"asset_mint".as_ref(),
+            hash_id.as_ref(), 
+            // initially the hash_id was used as a seed in the asset account and in the mint was used the asset key
+            // makes more sense like this as explained up
+        ],
+        bump,
+    )]
+    pub asset_mint: Account<'info, Mint>,
+    #[account(
+        init,
+        payer = authority,
         space = Asset::SIZE,
         seeds = [
             b"asset".as_ref(),
-            hash_id.as_ref()
+            asset_mint.key().as_ref() 
+            // this is set to be able to discriminate between tokens of this program and others
+            // ie: if a pda with this seeds is found (mint), means that this token was created with this program
         ],
         bump,
     )]
     pub asset: Account<'info, Asset>,
     pub accepted_mint: Account<'info, Mint>,
-    #[account(
-        init,
-        payer = authority,
-        mint::decimals = 0,
-        mint::authority = asset,
-        seeds = [
-            b"asset_mint".as_ref(),
-            asset.key().as_ref(),
-        ],
-        bump,
-    )]
-    pub asset_mint: Account<'info, Mint>,
     /// CHECK: this will be verified by token metadata program
     #[account(
         mut,
@@ -254,7 +258,7 @@ pub struct EditAssetPrice<'info> {
         mut,
         seeds = [
             b"asset".as_ref(),
-            asset.hash_id.as_ref()
+            asset.asset_mint.as_ref()
         ], 
         bump = asset.bump,
         constraint = asset.authority == authority.key() @ ErrorCode::WrongAssetAuthority
@@ -274,7 +278,7 @@ pub struct BuyAsset<'info> {
         mut,
         seeds = [
             b"asset".as_ref(),
-            asset.hash_id.as_ref(),
+            asset.asset_mint.as_ref(),
         ],
         bump = asset.bump
     )]
@@ -293,7 +297,7 @@ pub struct BuyAsset<'info> {
         mut,
         seeds = [
             b"asset_mint".as_ref(),
-            asset.key().as_ref(),
+            asset.hash_id.as_ref(),
         ],
         bump = asset.mint_bump
     )]
@@ -317,7 +321,7 @@ pub struct ShareAsset<'info> {
         mut,
         seeds = [
             b"asset".as_ref(),
-            asset.hash_id.as_ref(),
+            asset.asset_mint.as_ref(),
         ],
         bump = asset.bump,
         constraint = authority.key() == asset.authority @ ErrorCode::WrongAssetAuthority
@@ -327,7 +331,7 @@ pub struct ShareAsset<'info> {
         mut,
         seeds = [
             b"asset_mint".as_ref(),
-            asset.key().as_ref(),
+            asset.hash_id.as_ref(),
         ],
         bump = asset.mint_bump
     )]
@@ -351,7 +355,7 @@ pub struct UseAsset<'info> {
         mut,
         seeds = [
             b"asset".as_ref(),
-            asset.hash_id.as_ref(),
+            asset.asset_mint.as_ref(),
         ],
         bump = asset.bump,
     )]
@@ -360,7 +364,7 @@ pub struct UseAsset<'info> {
         mut,
         seeds = [
             b"asset_mint".as_ref(),
-            asset.key().as_ref(),
+            asset.hash_id.as_ref(),
         ],
         bump = asset.mint_bump,
         constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::WrongTokenAccount
@@ -381,7 +385,7 @@ pub struct DeleteAsset<'info> {
         mut,
         seeds = [
             b"asset".as_ref(),
-            asset.hash_id.as_ref(),
+            asset.asset_mint.as_ref(),
         ],
         close = authority,
         bump = asset.bump,

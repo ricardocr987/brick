@@ -19,12 +19,12 @@ export async function initNewAccounts(
   const acceptedMintPublicKey = await createMint(provider);
   const hashIdAux: string = uuid();
   const hashId = hashIdAux.substring(0, 32);
-  const [assetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("asset", "utf-8"), anchor.utils.bytes.utf8.encode(hashId)],
+  const [assetMint] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("asset_mint", "utf-8"), anchor.utils.bytes.utf8.encode(hashId)],
     program.programId
   );
-  const [assetMint] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("asset_mint", "utf-8"), assetPublicKey.toBuffer()],
+  const [assetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("asset", "utf-8"), assetMint.toBuffer()], 
     program.programId
   );
   const buyerKeypair = await createFundedWallet(provider, 20);
