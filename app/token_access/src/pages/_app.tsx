@@ -4,7 +4,6 @@ import Head from 'next/head';
 import { ContextProvider } from '@/components/contexts/ContextProvider';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import Notifications from '../components/Notification'
 
 const NavItems = [
   { label: "Home", url: "/", key: 1 },
@@ -24,7 +23,6 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <ContextProvider>
-        <Notifications />
         <Navbar NavItems={NavItems} />
         <div className="container">
             <Component {...pageProps} />
