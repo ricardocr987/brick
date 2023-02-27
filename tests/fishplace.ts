@@ -100,13 +100,13 @@ describe("token_access", () => {
     assert.equal(preBuyAssetAccount.exemplars, exemplars);
     assert.equal(preBuyAssetAccount.quantityPerExemplars, quantityPerExemplars);
 
-    const preBuyassetMintAccount = await getMint(
+    const preBuyAssetMintAccount = await getMint(
       provider.connection,
       assetMint
     );
-    assert.isDefined(preBuyassetMintAccount);
-    assert.equal(preBuyassetMintAccount.decimals, 0);
-    assert.equal(preBuyassetMintAccount.supply, BigInt(0));
+    assert.isDefined(preBuyAssetMintAccount);
+    assert.equal(preBuyAssetMintAccount.decimals, 0);
+    assert.equal(preBuyAssetMintAccount.supply, BigInt(0));
 
     const token = await metaplex.nfts().findByMint({ mintAddress: assetMint });
     assert.isDefined(token);
@@ -416,7 +416,7 @@ describe("token_access", () => {
     assert.equal(mintedassetMint.supply, BigInt(exemplarsToBuy));
   });
 
-  it("Use asset test: seller try to close account with tokens unused, when all used should allow to close the accounts", async () => {
+  it("Use asset test: seller try to close account with unused tokens, when all are used should allow to close the accounts", async () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const tokenPrice = 2;
@@ -499,7 +499,7 @@ describe("token_access", () => {
         .rpc();
     } catch (e) {
       if (e as AnchorError)
-        assert.equal(e.error.errorCode.code, "BuyerWithTokenUnsed");
+        assert.equal(e.error.errorCode.code, "UnusedTokenExists");
     }
 
     // preTx info
@@ -642,5 +642,143 @@ describe("token_access", () => {
 
     const assetMintAccount = await getMint(provider.connection, assetMint);
     assert.equal(assetMintAccount.supply, BigInt(0));
+  });
+
+  it("Share asset ix, seller sends token to another wallet, only seller can do this", async () => {
+    const buyerBalance = 5;
+    const sellerBalance = 2;
+    const tokenPrice = 2;
+    const exemplars = -1; // makes the token can be sold unlimited times
+    const exemplarsToShare = 2;
+    const quantityPerExemplars = 1;
+    const {
+      sellerKeypair,
+      acceptedMintPublicKey,
+      assetPublicKey,
+      hashId,
+      assetMint,
+      buyerKeypair,
+      buyerMintedTokenVault,
+    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
+
+    await program.methods
+      .createAsset(
+        hashId,
+        appName,
+        hashId,
+        tokenPrice,
+        exemplars,
+        quantityPerExemplars,
+        tokenName,
+        tokenSymbol,
+        tokenUri
+      )
+      .accounts({
+        metadataProgram: metadataProgramPublicKey,
+        authority: sellerKeypair.publicKey,
+        acceptedMint: acceptedMintPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    const preShareAssetAccount = await program.account.asset.fetch(
+      assetPublicKey
+    );
+    assert.isDefined(preShareAssetAccount);
+    assert.equal(preShareAssetAccount.appName, appName);
+    assert.equal(preShareAssetAccount.hashId, hashId);
+    assert.equal(preShareAssetAccount.itemHash, hashId);
+    assert.equal(
+      preShareAssetAccount.assetMint.toString(),
+      assetMint.toString()
+    );
+    assert.equal(
+      preShareAssetAccount.acceptedMint.toString(),
+      acceptedMintPublicKey.toString()
+    );
+    assert.equal(
+      preShareAssetAccount.authority.toString(),
+      sellerKeypair.publicKey.toString()
+    );
+    assert.equal(preShareAssetAccount.price, tokenPrice);
+    assert.equal(preShareAssetAccount.sold, 0);
+    assert.equal(preShareAssetAccount.used, 0);
+    assert.equal(preShareAssetAccount.exemplars, exemplars);
+    assert.equal(preShareAssetAccount.quantityPerExemplars, quantityPerExemplars);
+
+    const preShareAssetMintAccount = await getMint(
+      provider.connection,
+      assetMint
+    );
+    assert.isDefined(preShareAssetMintAccount);
+    assert.equal(preShareAssetMintAccount.decimals, 0);
+    assert.equal(preShareAssetMintAccount.supply, BigInt(0));
+
+    const token = await metaplex.nfts().findByMint({ mintAddress: assetMint });
+    assert.isDefined(token);
+    if (isNft(token)) {
+      assert.equal(token.updateAuthorityAddress, assetPublicKey);
+      assert.equal(token.mint.address, assetMint);
+      assert.equal(token.mint.decimals, 0);
+      assert.isTrue(token.mint.supply.basisPoints.eq(new anchor.BN(0)));
+      assert.equal(token.json.name, tokenName);
+      assert.equal(token.json.symbol, tokenSymbol);
+      assert.equal(token.json.uri, tokenUri);
+    }
+
+    // initilizes buyer token account to store the token
+    await provider.sendAndConfirm(
+      new anchor.web3.Transaction().add(
+        createAssociatedTokenAccountInstruction(
+          provider.wallet.publicKey,
+          buyerMintedTokenVault,
+          buyerKeypair.publicKey,
+          assetMint
+        )
+      )
+    );
+
+    await program.methods
+      .shareAsset(exemplarsToShare)
+      .accounts({
+        authority: sellerKeypair.publicKey,
+        asset: assetPublicKey,
+        assetMint: assetMint,
+        receiverMintedTokenVault: buyerMintedTokenVault,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    // postTxInfo
+    const assetAccount = await program.account.asset.fetch(assetPublicKey);
+    assert.isDefined(assetAccount);
+    assert.equal(assetAccount.shared, exemplarsToShare);
+
+    const assetMintAccount = await getMint(provider.connection, assetMint);
+    assert.equal(assetMintAccount.supply, BigInt(exemplarsToShare));
+
+    try {
+      await program.methods
+        .shareAsset(exemplarsToShare)
+        .accounts({
+          authority: buyerKeypair.publicKey,
+          asset: assetPublicKey,
+          assetMint: assetMint,
+          receiverMintedTokenVault: buyerMintedTokenVault,
+        })
+        .signers(
+          buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+        )
+        .rpc()
+    } catch (e) {
+      if (e as AnchorError)
+        assert.equal(e.error.errorCode.code, "WrongAssetAuthority");
+    }
   });
 });

@@ -189,8 +189,8 @@ pub mod token_access {
     }
 
     pub fn delete_asset(ctx: Context<DeleteAsset>) -> Result<()> {
-        if (*ctx.accounts.asset).sold > (*ctx.accounts.asset).used {
-                return Err(ErrorCode::BuyerWithTokenUnsed.into());
+        if (*ctx.accounts.asset).sold + (*ctx.accounts.asset).shared > (*ctx.accounts.asset).used {
+                return Err(ErrorCode::UnusedTokenExists.into());
         }
 
         Ok(())
@@ -425,8 +425,8 @@ pub enum ErrorCode {
     WrongTokenAccount,
     #[msg("You are trying to use an token that you don't own")]
     WrongTokenOwner,
-    #[msg("There are still buyers with the token available for use")]
-    BuyerWithTokenUnsed,
+    #[msg("There are still users with the token available for use")]
+    UnusedTokenExists,
     #[msg("You are not the owner of this asset")]
     WrongAssetAuthority
 }
