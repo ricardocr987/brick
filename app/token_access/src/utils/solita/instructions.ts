@@ -1,4 +1,4 @@
-import * as solita from './index.js'
+import * as solita from './index'
 
 export type EventBase = {
   id: string;
@@ -123,42 +123,7 @@ export type DeleteAssetEvent = InstructionBase &
 
 /*----------------------------------------------------------------------*/
 
-export function getInstructionType(data: Buffer): InstructionType | undefined {
-  const discriminator = data.slice(0, 8)
-  return IX_METHOD_CODE.get(discriminator.toString('ascii'))
-}
 
-export const IX_METHOD_CODE: Map<string, InstructionType | undefined> = new Map<
-  string,
-  InstructionType | undefined
->([
-  [
-    Buffer.from(solita.createAssetInstructionDiscriminator).toString('ascii'),
-    InstructionType.CreateAsset,
-  ],
-  [
-    Buffer.from(solita.editAssetPriceInstructionDiscriminator).toString(
-      'ascii',
-    ),
-    InstructionType.EditAssetPrice,
-  ],
-  [
-    Buffer.from(solita.buyAssetInstructionDiscriminator).toString('ascii'),
-    InstructionType.BuyAsset,
-  ],
-  [
-    Buffer.from(solita.shareAssetInstructionDiscriminator).toString('ascii'),
-    InstructionType.ShareAsset,
-  ],
-  [
-    Buffer.from(solita.useAssetInstructionDiscriminator).toString('ascii'),
-    InstructionType.UseAsset,
-  ],
-  [
-    Buffer.from(solita.deleteAssetInstructionDiscriminator).toString('ascii'),
-    InstructionType.DeleteAsset,
-  ],
-])
 export const IX_DATA_LAYOUT: Partial<Record<InstructionType, any>> = {
   [InstructionType.CreateAsset]: solita.createAssetStruct,
   [InstructionType.EditAssetPrice]: solita.editAssetPriceStruct,
@@ -166,15 +131,6 @@ export const IX_DATA_LAYOUT: Partial<Record<InstructionType, any>> = {
   [InstructionType.ShareAsset]: solita.shareAssetStruct,
   [InstructionType.UseAsset]: solita.useAssetStruct,
   [InstructionType.DeleteAsset]: solita.deleteAssetStruct,
-}
-
-export const IX_ACCOUNTS_LAYOUT: Partial<Record<InstructionType, any>> = {
-  [InstructionType.CreateAsset]: solita.CreateAssetAccounts,
-  [InstructionType.EditAssetPrice]: solita.EditAssetPriceAccounts,
-  [InstructionType.BuyAsset]: solita.BuyAssetAccounts,
-  [InstructionType.ShareAsset]: solita.ShareAssetAccounts,
-  [InstructionType.UseAsset]: solita.UseAssetAccounts,
-  [InstructionType.DeleteAsset]: solita.DeleteAssetAccounts,
 }
 
 export type ParsedEventsInfo =

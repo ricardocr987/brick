@@ -1,10 +1,10 @@
 import { AccountMeta, PublicKey } from '@solana/web3.js'
-export * from './accounts/index.js'
-export * from './instructions/index.js'
-export * from './instructions.js'
-export * from './accounts.js'
+export * from './accounts/index'
+export * from './instructions/index'
+export * from './instructions'
+export * from './accounts'
 
-import { Asset, AssetArgs } from './accounts/index.js'
+import { Asset, AssetArgs } from './accounts/index'
 
 export type CreateAssetInstruction = {
   programId: PublicKey

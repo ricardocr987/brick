@@ -20,7 +20,7 @@ export async function initNewAccounts(
   const hashIdAux: string = uuid();
   const hashId = hashIdAux.substring(0, 32);
   const [assetMint] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("asset_mint", "utf-8"), anchor.utils.bytes.utf8.encode(hashId)],
+    [Buffer.from("asset_mint", "utf-8"), Buffer.from(hashId, "utf-8")],
     program.programId
   );
   const [assetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
