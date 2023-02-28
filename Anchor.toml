@@ -2,7 +2,7 @@
 seeds = true
 
 [programs.localnet]
-token_access = "FiShPdUdNuvhF9qETghrDWXiiAR8X2ujeGfGwSC84d4P"
+token_access = "CVxc3dHvujRrFQ5iMBxFFWPsXnU8SyvVT9SgUTJjxXdv"
 
 [registry]
 url = "https://api.apr.dev"
