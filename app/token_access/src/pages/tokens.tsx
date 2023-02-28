@@ -3,7 +3,6 @@ import { getAssetPubkey } from "@/utils/helpers";
 import { AccountLayout, RawAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Connection, PublicKey } from "@solana/web3.js";
-import bs58 from "bs58";
 import { useEffect, useState } from "react";
 
 async function getTokens(publicKey: PublicKey, connection: Connection) {
@@ -67,13 +66,14 @@ const UserTokensPage = () => {
 
     useEffect(() => {
         const setAccountState = async () => {
-          if (wallet.connected) {
-            const tokensData = await getTokens(wallet.publicKey, connection)
-            setTokens(tokensData)
-            const tokensOnSale = await getTokensOnSale(wallet.publicKey, connection)
-            setTokensOnSale(tokensOnSale)
-          }
+            if (wallet.connected) {
+                const tokensData = await getTokens(wallet.publicKey, connection)
+                setTokens(tokensData)
+                const tokensOnSale = await getTokensOnSale(wallet.publicKey, connection)
+                setTokensOnSale(tokensOnSale)
+            }
         }
+        setAccountState()
     }, [wallet.connected]);
     
     return (
