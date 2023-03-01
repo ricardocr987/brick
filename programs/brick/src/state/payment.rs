@@ -15,5 +15,5 @@ pub struct Payment {
 }
 
 impl Payment {
-    pub const SIZE: usize = 8 + 32 + 32 + 32 + 4 + 4 + 8 + 8 + 8 + 4 + 1 + 1;
+    pub const SIZE: usize = 8 + 32 + 32 + 32 + 4 + 4 + 8 + 8 + 8 + 1 + 1;
 }
