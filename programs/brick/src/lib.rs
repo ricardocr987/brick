@@ -6,10 +6,10 @@ use {
     instructions::*,
 };
 
-declare_id!("CVxc3dHvujRrFQ5iMBxFFWPsXnU8SyvVT9SgUTJjxXdv");
+declare_id!("84KfPcJAZhNSLMmSzgx3kDx3FfKfS3WK5u8FF8zks18S");
 
 #[program]
-pub mod token_access {
+pub mod brick {
     use super::*;
 
     pub fn create_asset(

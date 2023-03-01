@@ -1,4 +1,4 @@
-import { assetDiscriminator, assetBeet } from './'
+import { assetDiscriminator, assetBeet } from '.'
 
 export enum AccountType {
   Asset = 'Asset',

@@ -13,7 +13,7 @@ export const Footer = () => {
           </a>
         </div>
         <div className={styles.column}>
-          <a href="https://github.com/ricardocr987/token_access">
+          <a href="https://github.com/ricardocr987/brick">
               <img
                   src="github-square.svg"
                   height="55"

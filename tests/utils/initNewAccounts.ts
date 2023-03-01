@@ -7,12 +7,12 @@ import {
   createFundedAssociatedTokenAccount,
 } from ".";
 import { v4 as uuid } from "uuid";
-import { TokenAccess } from "../../target/types/token_access";
+import { Brick } from "../../target/types/brick";
 import { Connection } from "@solana/web3.js";
 
 export async function initNewAccounts(
   provider: AnchorProvider,
-  program: Program<TokenAccess>,
+  program: Program<Brick>,
   buyerBalance?: number,
   sellerBalance?: number
 ) {

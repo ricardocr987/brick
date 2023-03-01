@@ -14,13 +14,13 @@ import {
   createMintToInstruction,
 } from "@solana/spl-token";
 import { delay, initNewAccounts } from "./utils";
-import { TokenAccess } from "../target/types/token_access";
+import { Brick } from "../target/types/brick";
 import { Connection } from "@solana/web3.js";
 
 describe("token_access", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const program = anchor.workspace.TokenAccess as Program<TokenAccess>;
+  const program = anchor.workspace.Brick as Program<Brick>;
 
   const metadataProgramPublicKey = new anchor.web3.PublicKey(
     "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
@@ -35,7 +35,7 @@ describe("token_access", () => {
   const tokenUri = "https://aleph.im/876jkfbnewjdfjn";
   const noRefundTime = new anchor.BN(0);
 
-  /*it("Create an asset to mint unlimited editions and buy some", async () => {
+  it("Create an asset to mint unlimited editions and buy some", async () => {
     const buyerBalance = 5;
     const sellerBalance = 2;
     const tokenPrice = 2;
@@ -1062,7 +1062,7 @@ describe("token_access", () => {
     assert.isDefined(preTxBuyerFunds);
     assert.isDefined(postTxBuyerFunds);
     assert.equal(postTxBuyerFunds.amount, preTxBuyerFunds.amount);
-  });*/
+  });
 
   it("Seller withdraws after refund time, before test if the buyer can get a refund after the refund time", async () => {
     const buyerBalance = 10;
