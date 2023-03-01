@@ -87,7 +87,6 @@ pub fn handler<'info>(ctx: Context<BuyAsset>, timestamp: u64, exemplars: u32) ->
             return Err(ErrorCode::NotEnoughTokensAvailable.into());
     }
     (*ctx.accounts.asset).sold += exemplars;
-    (*ctx.accounts.payment).payment_counter = ctx.accounts.asset.sold;
     (*ctx.accounts.payment).payment_timestamp = timestamp;
     (*ctx.accounts.payment).seller_receive_funds_timestamp = ctx.accounts.asset.timestamp_funds_vault + timestamp;
     (*ctx.accounts.payment).asset_mint = ctx.accounts.asset_mint.key();

@@ -10,8 +10,6 @@ pub struct Payment {
     pub total_amount: u64,
     pub payment_timestamp: u64,
     pub seller_receive_funds_timestamp: u64,
-    pub payment_counter: u32, // used as a seed, is the sold amount of the asset in the moment of payment
-    // i needed it because buyer should can create multiple payments account for the same asset
     pub bump: u8,
     pub bump_vault: u8,
 }
