@@ -12,11 +12,13 @@ use {
 };
 
 #[derive(Accounts)]
+#[instruction(timestamp: u64)]
 pub struct BuyAsset<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
+    pub clock: Sysvar<'info, Clock>,
     #[account(mut)]
     pub authority: Signer<'info>,
     #[account(
@@ -30,16 +32,6 @@ pub struct BuyAsset<'info> {
     pub asset: Account<'info, Asset>,
     #[account(
         mut,
-        constraint = buyer_transfer_vault.mint == asset.accepted_mint @ ErrorCode::WrongBuyerMintProvided
-    )]
-    pub buyer_transfer_vault: Account<'info, TokenAccount>, // buyer token account to pay
-    #[account(
-        mut,
-        constraint = seller_transfer_vault.mint == asset.accepted_mint @ ErrorCode::WrongSellerMintProvided
-    )]
-    pub seller_transfer_vault: Account<'info, TokenAccount>,
-    #[account(
-        mut,
         seeds = [
             b"asset_mint".as_ref(),
             asset.hash_id.as_ref(),
@@ -49,19 +41,68 @@ pub struct BuyAsset<'info> {
     pub asset_mint: Account<'info, Mint>,
     #[account(
         mut,
+        constraint = buyer_transfer_vault.mint == asset.accepted_mint @ ErrorCode::WrongBuyerMintProvided
+    )]
+    pub buyer_transfer_vault: Account<'info, TokenAccount>, // buyer token account to pay
+    #[account(
+        constraint = accepted_mint.key() == asset.accepted_mint.key()
+    )]
+    pub accepted_mint: Account<'info, Mint>,
+    #[account(
+        init,
+        payer = authority,
+        space = Payment::SIZE,
+        seeds = [
+            b"payment".as_ref(),
+            asset_mint.key().as_ref(),
+            authority.key().as_ref(),
+            timestamp.to_le_bytes().as_ref(),
+        ],
+        bump,
+    )]
+    pub payment: Account<'info, Payment>,
+    #[account(
+        init,
+        payer = authority,
+        seeds = [
+            b"payment_vault".as_ref(),
+            payment.key().as_ref(),
+        ],
+        bump,
+        token::mint = accepted_mint,
+        token::authority = payment,
+    )]
+    pub payment_vault: Box<Account<'info, TokenAccount>>,
+    #[account(
+        mut,
         constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::WrongTokenAccount
     )]
     pub buyer_minted_token_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store Asset token
 }
 
-pub fn handler<'info>(ctx: Context<BuyAsset>, exemplars: u32) -> Result<()> {
+pub fn handler<'info>(ctx: Context<BuyAsset>, timestamp: u64, exemplars: u32) -> Result<()> {
     if 
         (*ctx.accounts.asset).exemplars > -1 && 
         (*ctx.accounts.asset).sold + exemplars > (*ctx.accounts.asset).exemplars as u32 {
             return Err(ErrorCode::NotEnoughTokensAvailable.into());
     }
-
     (*ctx.accounts.asset).sold += exemplars;
+    (*ctx.accounts.payment).payment_counter = ctx.accounts.asset.sold;
+    (*ctx.accounts.payment).payment_timestamp = timestamp;
+    (*ctx.accounts.payment).seller_receive_funds_timestamp = ctx.accounts.asset.timestamp_funds_vault + timestamp;
+    (*ctx.accounts.payment).asset_mint = ctx.accounts.asset_mint.key();
+    (*ctx.accounts.payment).seller = ctx.accounts.asset.authority;
+    (*ctx.accounts.payment).buyer = ctx.accounts.authority.key();
+    (*ctx.accounts.payment).bump = *ctx.bumps.get("payment").unwrap();
+    (*ctx.accounts.payment).bump_vault = *ctx.bumps.get("payment_vault").unwrap();
+    (*ctx.accounts.payment).exemplars = exemplars;
+    (*ctx.accounts.payment).price = ctx.accounts.asset.price;
+    (*ctx.accounts.payment).total_amount = ctx.accounts
+        .asset
+        .price
+        .checked_mul(exemplars.into())
+        .unwrap()
+        .into();
 
     let seeds = &[
         b"asset".as_ref(),
@@ -75,16 +116,11 @@ pub fn handler<'info>(ctx: Context<BuyAsset>, exemplars: u32) -> Result<()> {
             ctx.accounts.token_program.to_account_info(),
             Transfer {
                 from: ctx.accounts.buyer_transfer_vault.to_account_info(),
-                to: ctx.accounts.seller_transfer_vault.to_account_info(),
+                to: ctx.accounts.payment_vault.to_account_info(),
                 authority: ctx.accounts.authority.to_account_info(),
             },
         ),
-        ctx.accounts
-            .asset
-            .price
-            .checked_mul(exemplars.into())
-            .unwrap()
-            .into(),
+        ctx.accounts.payment.total_amount,
     )?;
 
     // call mintTo instruction

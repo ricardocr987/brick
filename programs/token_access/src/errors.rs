@@ -15,5 +15,9 @@ pub enum ErrorCode {
     #[msg("There are still users with the token available for use")]
     UnusedTokenExists,
     #[msg("You are not the owner of this asset")]
-    WrongAssetAuthority
+    WrongAssetAuthority,
+    #[msg("Refund time has consumed")]
+    TimeForRefundHasConsumed,
+    #[msg("You cannot withdraw these funds yet")]
+    CannotWithdrawYet
 }

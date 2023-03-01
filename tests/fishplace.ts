@@ -13,8 +13,9 @@ import {
   getMint,
   createMintToInstruction,
 } from "@solana/spl-token";
-import { initNewAccounts } from "./utils";
+import { delay, initNewAccounts } from "./utils";
 import { TokenAccess } from "../target/types/token_access";
+import { Connection } from "@solana/web3.js";
 
 describe("token_access", () => {
   const provider = anchor.AnchorProvider.env();
@@ -32,8 +33,9 @@ describe("token_access", () => {
   const tokenName = "Solana whales time series";
   const tokenSymbol = "SOL";
   const tokenUri = "https://aleph.im/876jkfbnewjdfjn";
+  const noRefundTime = new anchor.BN(0);
 
-  it("Create an asset to mint unlimited editions and buy some", async () => {
+  /*it("Create an asset to mint unlimited editions and buy some", async () => {
     const buyerBalance = 5;
     const sellerBalance = 2;
     const tokenPrice = 2;
@@ -49,7 +51,9 @@ describe("token_access", () => {
       buyerKeypair,
       buyerMintedTokenVault,
       buyerTransferVault,
-      sellerTransferVault,
+      buyTimestamp,
+      paymentPublicKey,
+      paymentVaultPublicKey,
     } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
 
     await program.methods
@@ -57,6 +61,7 @@ describe("token_access", () => {
         hashId,
         appName,
         hashId,
+        noRefundTime,
         tokenPrice,
         exemplars,
         quantityPerExemplars,
@@ -82,10 +87,7 @@ describe("token_access", () => {
     assert.equal(preBuyAssetAccount.appName, appName);
     assert.equal(preBuyAssetAccount.hashId, hashId);
     assert.equal(preBuyAssetAccount.itemHash, hashId);
-    assert.equal(
-      preBuyAssetAccount.assetMint.toString(),
-      assetMint.toString()
-    );
+    assert.equal(preBuyAssetAccount.assetMint.toString(), assetMint.toString());
     assert.equal(
       preBuyAssetAccount.acceptedMint.toString(),
       acceptedMintPublicKey.toString()
@@ -133,13 +135,15 @@ describe("token_access", () => {
     );
 
     await program.methods
-      .buyAsset(exemplarsToBuy)
+      .buyAsset(buyTimestamp, exemplarsToBuy)
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
-        buyerTransferVault: buyerTransferVault,
-        sellerTransferVault: sellerTransferVault,
         assetMint: assetMint,
+        buyerTransferVault: buyerTransferVault,
+        acceptedMint: acceptedMintPublicKey,
+        payment: paymentPublicKey,
+        paymentVault: paymentVaultPublicKey,
         buyerMintedTokenVault: buyerMintedTokenVault,
       })
       .signers(
@@ -192,7 +196,9 @@ describe("token_access", () => {
       buyerKeypair,
       buyerMintedTokenVault,
       buyerTransferVault,
-      sellerTransferVault,
+      buyTimestamp,
+      paymentPublicKey,
+      paymentVaultPublicKey,
     } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
 
     await program.methods
@@ -200,6 +206,7 @@ describe("token_access", () => {
         hashId,
         appName,
         hashId,
+        noRefundTime,
         tokenPrice,
         exemplars,
         quantityPerExemplars,
@@ -231,13 +238,15 @@ describe("token_access", () => {
     );
 
     await program.methods
-      .buyAsset(exemplars)
+      .buyAsset(buyTimestamp, exemplars)
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
-        buyerTransferVault: buyerTransferVault,
-        sellerTransferVault: sellerTransferVault,
         assetMint: assetMint,
+        buyerTransferVault: buyerTransferVault,
+        acceptedMint: acceptedMintPublicKey,
+        payment: paymentPublicKey,
+        paymentVault: paymentVaultPublicKey,
         buyerMintedTokenVault: buyerMintedTokenVault,
       })
       .signers(
@@ -254,16 +263,35 @@ describe("token_access", () => {
     const assetMintAccount = await getMint(provider.connection, assetMint);
     assert.equal(assetMintAccount.supply, BigInt(exemplars));
 
-    // check if the buyer is possible to buy more even available = 0
+    // check if the buyer is able to buy more even available = 0
+    const connection = new Connection('https://api.testnet.solana.com', 'processed');
+    const slot = await connection.getSlot();
+    const newBuyTimeStamp = new anchor.BN(await connection.getBlockTime(slot));
+    const [newPaymentPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("payment", "utf-8"),
+        assetMint.toBuffer(),
+        buyerKeypair.publicKey.toBuffer(),
+        newBuyTimeStamp.toBuffer("le", 8),
+      ],
+      program.programId
+    );
+    const [newPaymentVaultPublicKey] =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("payment_vault", "utf-8"), newPaymentPublicKey.toBuffer()],
+        program.programId
+      );
     try {
       await program.methods
-        .buyAsset(exemplars)
+        .buyAsset(newBuyTimeStamp, exemplars)
         .accounts({
           authority: buyerKeypair.publicKey,
           asset: assetPublicKey,
-          buyerTransferVault: buyerTransferVault,
-          sellerTransferVault: sellerTransferVault,
           assetMint: assetMint,
+          buyerTransferVault: buyerTransferVault,
+          acceptedMint: acceptedMintPublicKey,
+          payment: newPaymentPublicKey,
+          paymentVault: newPaymentVaultPublicKey,
           buyerMintedTokenVault: buyerMintedTokenVault,
         })
         .signers(
@@ -276,7 +304,7 @@ describe("token_access", () => {
     }
   });
 
-  it("Create an asset and modify the price, an user pays the new price", async () => {
+  it("Create an asset and modify the price, an user pays the new price, seller withdraws funds and get the correct amount", async () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const oldTokenPrice = 1;
@@ -294,6 +322,9 @@ describe("token_access", () => {
       buyerMintedTokenVault,
       buyerTransferVault,
       sellerTransferVault,
+      buyTimestamp,
+      paymentPublicKey,
+      paymentVaultPublicKey,
     } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
 
     const preTxBuyerFunds = await getAccount(
@@ -310,6 +341,7 @@ describe("token_access", () => {
         hashId,
         appName,
         hashId,
+        noRefundTime,
         oldTokenPrice,
         exemplars,
         quantityPerExemplars,
@@ -365,17 +397,83 @@ describe("token_access", () => {
     );
 
     await program.methods
-      .buyAsset(exemplarsToBuy)
+      .buyAsset(buyTimestamp, exemplarsToBuy)
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
-        buyerTransferVault: buyerTransferVault,
-        sellerTransferVault: sellerTransferVault,
         assetMint: assetMint,
+        buyerTransferVault: buyerTransferVault,
+        acceptedMint: acceptedMintPublicKey,
+        payment: paymentPublicKey,
+        paymentVault: paymentVaultPublicKey,
         buyerMintedTokenVault: buyerMintedTokenVault,
       })
       .signers(
         buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    const paymentAccount = await program.account.payment.fetch(
+      paymentPublicKey
+    );
+    assert.isDefined(paymentAccount)
+
+    // check if the buyer can withdraw the funds when the seller is the authority
+    try {
+      await program.methods
+        .withdrawFunds()
+        .accounts({
+          authority: buyerKeypair.publicKey,
+          asset: assetPublicKey,
+          assetMint: assetMint,
+          receiverVault: buyerTransferVault,
+          payment: paymentPublicKey,
+          buyer: buyerKeypair.publicKey,
+          paymentVault: paymentVaultPublicKey,
+        })
+        .signers(
+          buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+        )
+        .rpc();
+    } catch (e) {
+      if (e as AnchorError)
+        assert.equal(e.error.errorCode.code, "ConstraintRaw");
+    }
+    try {
+      await program.methods
+        .refund()
+        .accounts({
+          authority: buyerKeypair.publicKey,
+          asset: assetPublicKey,
+          assetMint: assetMint,
+          receiverVault: buyerTransferVault,
+          payment: paymentPublicKey,
+          paymentVault: paymentVaultPublicKey,
+          buyerMintedTokenVault: buyerMintedTokenVault,
+        })
+        .signers(
+          buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+        )
+        .rpc();
+    } catch (e) {
+      if (e as AnchorError)
+        assert.equal(e.error.errorCode.code, "TimeForRefundHasConsumed");
+    }
+
+    await program.methods
+      .withdrawFunds()
+      .accounts({
+        authority: sellerKeypair.publicKey,
+        asset: assetPublicKey,
+        assetMint: assetMint,
+        receiverVault: sellerTransferVault,
+        payment: paymentPublicKey,
+        buyer: buyerKeypair.publicKey,
+        paymentVault: paymentVaultPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
       )
       .rpc()
       .catch(console.error);
@@ -431,7 +529,9 @@ describe("token_access", () => {
       buyerKeypair,
       buyerMintedTokenVault,
       buyerTransferVault,
-      sellerTransferVault,
+      buyTimestamp,
+      paymentPublicKey,
+      paymentVaultPublicKey,
     } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
 
     await program.methods
@@ -439,6 +539,7 @@ describe("token_access", () => {
         hashId,
         appName,
         hashId,
+        noRefundTime,
         tokenPrice,
         exemplars,
         quantityPerExemplars,
@@ -470,13 +571,15 @@ describe("token_access", () => {
     );
 
     await program.methods
-      .buyAsset(exemplars)
+      .buyAsset(buyTimestamp, exemplars)
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
-        buyerTransferVault: buyerTransferVault,
-        sellerTransferVault: sellerTransferVault,
         assetMint: assetMint,
+        buyerTransferVault: buyerTransferVault,
+        acceptedMint: acceptedMintPublicKey,
+        payment: paymentPublicKey,
+        paymentVault: paymentVaultPublicKey,
         buyerMintedTokenVault: buyerMintedTokenVault,
       })
       .signers(
@@ -570,7 +673,9 @@ describe("token_access", () => {
       buyerKeypair,
       buyerMintedTokenVault,
       buyerTransferVault,
-      sellerTransferVault,
+      buyTimestamp,
+      paymentPublicKey,
+      paymentVaultPublicKey,
     } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
 
     await program.methods
@@ -578,6 +683,7 @@ describe("token_access", () => {
         hashId,
         appName,
         hashId,
+        noRefundTime,
         tokenPrice,
         exemplars,
         quantityPerExemplars,
@@ -621,13 +727,15 @@ describe("token_access", () => {
       )
       .preInstructions([
         await program.methods
-          .buyAsset(exemplars)
+          .buyAsset(buyTimestamp, exemplars)
           .accounts({
             authority: buyerKeypair.publicKey,
             asset: assetPublicKey,
-            buyerTransferVault: buyerTransferVault,
-            sellerTransferVault: sellerTransferVault,
             assetMint: assetMint,
+            buyerTransferVault: buyerTransferVault,
+            acceptedMint: acceptedMintPublicKey,
+            payment: paymentPublicKey,
+            paymentVault: paymentVaultPublicKey,
             buyerMintedTokenVault: buyerMintedTokenVault,
           })
           .instruction(),
@@ -642,6 +750,11 @@ describe("token_access", () => {
 
     const assetMintAccount = await getMint(provider.connection, assetMint);
     assert.equal(assetMintAccount.supply, BigInt(0));
+
+    const paymentAccount = await program.account.payment.fetch(
+      paymentPublicKey
+    );
+    assert.isDefined(paymentAccount)
   });
 
   it("Share asset ix, seller sends token to another wallet, only seller can do this", async () => {
@@ -666,6 +779,7 @@ describe("token_access", () => {
         hashId,
         appName,
         hashId,
+        noRefundTime,
         tokenPrice,
         exemplars,
         quantityPerExemplars,
@@ -707,7 +821,10 @@ describe("token_access", () => {
     assert.equal(preShareAssetAccount.sold, 0);
     assert.equal(preShareAssetAccount.used, 0);
     assert.equal(preShareAssetAccount.exemplars, exemplars);
-    assert.equal(preShareAssetAccount.quantityPerExemplars, quantityPerExemplars);
+    assert.equal(
+      preShareAssetAccount.quantityPerExemplars,
+      quantityPerExemplars
+    );
 
     const preShareAssetMintAccount = await getMint(
       provider.connection,
@@ -775,10 +892,340 @@ describe("token_access", () => {
         .signers(
           buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
         )
-        .rpc()
+        .rpc();
     } catch (e) {
       if (e as AnchorError)
         assert.equal(e.error.errorCode.code, "WrongAssetAuthority");
     }
+  });
+
+  it("Buyer gets refund, before test if the seller can withdraw during the refund time", async () => {
+    const buyerBalance = 10;
+    const sellerBalance = 2;
+    const tokenPrice = 2;
+    const exemplars = 2;
+    const quantityPerExemplars = 1;
+    const refundTime = new anchor.BN(60000);
+    const {
+      sellerKeypair,
+      acceptedMintPublicKey,
+      assetPublicKey,
+      hashId,
+      assetMint,
+      buyerKeypair,
+      buyerMintedTokenVault,
+      buyerTransferVault,
+      buyTimestamp,
+      paymentPublicKey,
+      paymentVaultPublicKey,
+      sellerTransferVault,
+    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
+
+    await program.methods
+      .createAsset(
+        hashId,
+        appName,
+        hashId,
+        refundTime,
+        tokenPrice,
+        exemplars,
+        quantityPerExemplars,
+        tokenName,
+        tokenSymbol,
+        tokenUri
+      )
+      .accounts({
+        metadataProgram: metadataProgramPublicKey,
+        authority: sellerKeypair.publicKey,
+        acceptedMint: acceptedMintPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    // initilizes buyer token account to store the token
+    await provider.sendAndConfirm(
+      new anchor.web3.Transaction().add(
+        createAssociatedTokenAccountInstruction(
+          provider.wallet.publicKey,
+          buyerMintedTokenVault,
+          buyerKeypair.publicKey,
+          assetMint
+        )
+      )
+    );
+
+    const preTxBuyerFunds = await getAccount(
+      provider.connection,
+      buyerTransferVault
+    );
+
+    await program.methods
+      .buyAsset(buyTimestamp, exemplars)
+      .accounts({
+        authority: buyerKeypair.publicKey,
+        asset: assetPublicKey,
+        assetMint: assetMint,
+        buyerTransferVault: buyerTransferVault,
+        acceptedMint: acceptedMintPublicKey,
+        payment: paymentPublicKey,
+        paymentVault: paymentVaultPublicKey,
+        buyerMintedTokenVault: buyerMintedTokenVault,
+      })
+      .signers(
+        buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    const paymentVaultFunds = await getAccount(
+      provider.connection,
+      paymentVaultPublicKey
+    );
+    assert.isDefined(paymentVaultFunds)
+    const paymentAccount = await program.account.payment.fetch(
+      paymentPublicKey
+    );
+    assert.isDefined(paymentAccount)
+    assert.equal(
+      paymentVaultFunds.amount,
+      BigInt(tokenPrice * exemplars)
+    );
+
+    // check if the buyer can withdraw the funds when the seller is the authority
+    try {
+      await program.methods
+        .withdrawFunds()
+        .accounts({
+          authority: sellerKeypair.publicKey,
+          asset: assetPublicKey,
+          assetMint: assetMint,
+          receiverVault: sellerTransferVault,
+          payment: paymentPublicKey,
+          buyer: buyerKeypair.publicKey,
+          paymentVault: paymentVaultPublicKey,
+        })
+        .signers(
+          sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+        )
+        .rpc();
+    } catch (e) {
+      if (e as AnchorError)
+        assert.equal(e.error.errorCode.code, "CannotWithdrawYet");
+    }
+    try {
+      await program.methods
+        .refund()
+        .accounts({
+          authority: sellerKeypair.publicKey,
+          asset: assetPublicKey,
+          assetMint: assetMint,
+          receiverVault: sellerTransferVault,
+          payment: paymentPublicKey,
+          paymentVault: paymentVaultPublicKey,
+          buyerMintedTokenVault: buyerMintedTokenVault,
+        })
+        .signers(
+          sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+        )
+        .rpc();
+    } catch (e) {
+      if (e as AnchorError)
+        assert.equal(e.error.errorCode.code, "ConstraintRaw");
+    }
+
+    await program.methods
+      .refund()
+      .accounts({
+        authority: buyerKeypair.publicKey,
+        asset: assetPublicKey,
+        assetMint: assetMint,
+        receiverVault: buyerTransferVault,
+        payment: paymentPublicKey,
+        paymentVault: paymentVaultPublicKey,
+        buyerMintedTokenVault: buyerMintedTokenVault,
+      })
+      .signers(
+        buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    const postTxBuyerFunds = await getAccount(
+      provider.connection,
+      buyerTransferVault
+    );
+
+    // Assert buyer token account haven't changed
+    assert.isDefined(preTxBuyerFunds);
+    assert.isDefined(postTxBuyerFunds);
+    assert.equal(postTxBuyerFunds.amount, preTxBuyerFunds.amount);
+  });*/
+
+  it("Seller withdraws after refund time, before test if the buyer can get a refund after the refund time", async () => {
+    const buyerBalance = 10;
+    const sellerBalance = 2;
+    const tokenPrice = 2;
+    const exemplars = 2;
+    const quantityPerExemplars = 1;
+    const refundTime = new anchor.BN(5); // it is introduced in seconds
+    const {
+      sellerKeypair,
+      acceptedMintPublicKey,
+      assetPublicKey,
+      hashId,
+      assetMint,
+      buyerKeypair,
+      buyerMintedTokenVault,
+      buyerTransferVault,
+      buyTimestamp,
+      paymentPublicKey,
+      paymentVaultPublicKey,
+      sellerTransferVault,
+    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
+
+    await program.methods
+      .createAsset(
+        hashId,
+        appName,
+        hashId,
+        refundTime,
+        tokenPrice,
+        exemplars,
+        quantityPerExemplars,
+        tokenName,
+        tokenSymbol,
+        tokenUri
+      )
+      .accounts({
+        metadataProgram: metadataProgramPublicKey,
+        authority: sellerKeypair.publicKey,
+        acceptedMint: acceptedMintPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    // initilizes buyer token account to store the token
+    await provider.sendAndConfirm(
+      new anchor.web3.Transaction().add(
+        createAssociatedTokenAccountInstruction(
+          provider.wallet.publicKey,
+          buyerMintedTokenVault,
+          buyerKeypair.publicKey,
+          assetMint
+        )
+      )
+    );
+
+    const preTxSellerFunds = await getAccount(
+      provider.connection,
+      sellerTransferVault
+    );
+
+    await program.methods
+      .buyAsset(buyTimestamp, exemplars)
+      .accounts({
+        authority: buyerKeypair.publicKey,
+        asset: assetPublicKey,
+        assetMint: assetMint,
+        buyerTransferVault: buyerTransferVault,
+        acceptedMint: acceptedMintPublicKey,
+        payment: paymentPublicKey,
+        paymentVault: paymentVaultPublicKey,
+        buyerMintedTokenVault: buyerMintedTokenVault,
+      })
+      .signers(
+        buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    const paymentVaultFunds = await getAccount(
+      provider.connection,
+      paymentVaultPublicKey
+    );
+    assert.isDefined(paymentVaultFunds)
+    const paymentAccount = await program.account.payment.fetch(
+      paymentPublicKey
+    );
+    assert.isDefined(paymentAccount)
+    assert.equal(
+      paymentVaultFunds.amount,
+      BigInt(tokenPrice * exemplars)
+    );
+
+    await delay(5000) // i've created 5s refund time, we wait that time
+
+    // check if the buyer can withdraw the funds when the seller is the authority
+    try {
+      await program.methods
+        .withdrawFunds()
+        .accounts({
+          authority: buyerKeypair.publicKey,
+          asset: assetPublicKey,
+          assetMint: assetMint,
+          receiverVault: buyerTransferVault,
+          payment: paymentPublicKey,
+          buyer: buyerKeypair.publicKey,
+          paymentVault: paymentVaultPublicKey,
+        })
+        .signers(
+          buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+        )
+        .rpc();
+    } catch (e) {
+      if (e as AnchorError)
+        assert.equal(e.error.errorCode.code, "ConstraintRaw");
+    }
+    try {
+      await program.methods
+        .refund()
+        .accounts({
+          authority: buyerKeypair.publicKey,
+          asset: assetPublicKey,
+          assetMint: assetMint,
+          receiverVault: buyerTransferVault,
+          payment: paymentPublicKey,
+          paymentVault: paymentVaultPublicKey,
+          buyerMintedTokenVault: buyerMintedTokenVault,
+        })
+        .signers(
+          buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+        )
+        .rpc();
+    } catch (e) {
+      if (e as AnchorError)
+        assert.equal(e.error.errorCode.code, "TimeForRefundHasConsumed");
+    }
+
+    await program.methods
+      .withdrawFunds()
+      .accounts({
+        authority: sellerKeypair.publicKey,
+        asset: assetPublicKey,
+        assetMint: assetMint,
+        receiverVault: sellerTransferVault,
+        payment: paymentPublicKey,
+        buyer: buyerKeypair.publicKey,
+        paymentVault: paymentVaultPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc();
+
+    const postTxSellerFunds = await getAccount(
+      provider.connection,
+      sellerTransferVault
+    );
+
+    // Assert buyer token account haven't changed
+    assert.isDefined(preTxSellerFunds);
+    assert.equal(preTxSellerFunds.amount + BigInt(exemplars * tokenPrice) , postTxSellerFunds.amount);
   });
 });

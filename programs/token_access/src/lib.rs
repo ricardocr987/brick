@@ -17,6 +17,7 @@ pub mod token_access {
         hash_id: String,
         app_name: String,
         item_hash: String,
+        timestamp_funds_vault: u64,
         token_price: u32,
         exemplars: i32,
         quantity_per_exemplars: u32,
@@ -29,6 +30,7 @@ pub mod token_access {
             hash_id,
             app_name,
             item_hash,
+            timestamp_funds_vault,
             token_price,
             exemplars,
             quantity_per_exemplars,
@@ -42,12 +44,20 @@ pub mod token_access {
         edit_asset_price::handler(ctx, token_price)
     }
 
-    pub fn buy_asset(ctx: Context<BuyAsset>, exemplars: u32) -> Result<()> {
-        buy_asset::handler(ctx, exemplars)
+    pub fn buy_asset(ctx: Context<BuyAsset>, timestamp: u64, exemplars: u32) -> Result<()> {
+        buy_asset::handler(ctx, timestamp, exemplars)
     }
 
     pub fn share_asset(ctx: Context<ShareAsset>, exemplars: u32) -> Result<()> {
         share_asset::handler(ctx, exemplars)
+    }
+
+    pub fn withdraw_funds(ctx: Context<WithdrawFunds>) -> Result<()> {
+        withdraw_funds::handler(ctx)
+    }
+
+    pub fn refund(ctx: Context<Refund>) -> Result<()> {
+        refund::handler(ctx)
     }
 
     pub fn use_asset(ctx: Context<UseAsset>, exemplars: u32) -> Result<()> {

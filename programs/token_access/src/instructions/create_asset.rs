@@ -4,9 +4,7 @@ use {
         ID as mpl_metadata_program,
         instruction::create_metadata_accounts_v3,
     },
-    anchor_spl::{
-        token::{ Mint, Token },
-    },
+    anchor_spl::token::{ Mint, Token },
     anchor_lang::{
         prelude::*,
         solana_program::{
@@ -74,6 +72,7 @@ pub fn handler<'info>(
     hash_id: String,
     app_name: String,
     item_hash: String,
+    timestamp_funds_vault: u64,
     token_price: u32,
     exemplars: i32,
     quantity_per_exemplars: u32,
@@ -87,9 +86,11 @@ pub fn handler<'info>(
     (*ctx.accounts.asset).accepted_mint = ctx.accounts.accepted_mint.key();
     (*ctx.accounts.asset).asset_mint = ctx.accounts.asset_mint.key();
     (*ctx.accounts.asset).authority = ctx.accounts.authority.key();
+    (*ctx.accounts.asset).timestamp_funds_vault = timestamp_funds_vault;
     (*ctx.accounts.asset).price = token_price;
     (*ctx.accounts.asset).sold = 0;
     (*ctx.accounts.asset).used = 0;
+    (*ctx.accounts.asset).refunded = 0;
     (*ctx.accounts.asset).exemplars = exemplars;
     (*ctx.accounts.asset).quantity_per_exemplars = quantity_per_exemplars;
     (*ctx.accounts.asset).bump = *ctx.bumps.get("asset").unwrap();
