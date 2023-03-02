@@ -6,4 +6,4 @@ Brick is a protocol that allows you as a seller to tokenize a good, service or a
 
 The seller is the one who will be responsible for giving access to the buyer of the good, service or asset, to facilitate this, calling the instruction use_asset, would mean giving access to that buyer to whatever the seller has listed. I am building an indexer so that any app that uses Brick in the background can get the information of the different events and accounts easily.
 
-# Diagram in which you can better understand the logic of the program:![Screenshot 2023-03-01 at 22 40 32](https://user-images.githubusercontent.com/32191898/222271446-954f59f2-c715-4813-822b-9028fdfbacc7.png)
+# Diagram to understand the logic of the Solana program:![Screenshot 2023-03-01 at 22 40 32](https://user-images.githubusercontent.com/32191898/222271446-954f59f2-c715-4813-822b-9028fdfbacc7.png)
