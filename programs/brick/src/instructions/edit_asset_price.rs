@@ -15,7 +15,7 @@ pub struct EditAssetPrice<'info> {
             asset.asset_mint.as_ref()
         ], 
         bump = asset.bump,
-        constraint = asset.authority == authority.key() @ ErrorCode::WrongAssetAuthority
+        constraint = asset.authority == authority.key() @ ErrorCode::IncorrectAssetAuthority
     )]
     pub asset: Account<'info, Asset>,
 }

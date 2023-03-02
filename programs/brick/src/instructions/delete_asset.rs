@@ -16,14 +16,14 @@ pub struct DeleteAsset<'info> {
         ],
         close = authority,
         bump = asset.bump,
-        constraint = asset.authority == authority.key() @ ErrorCode::WrongAssetAuthority
+        constraint = asset.authority == authority.key() @ ErrorCode::IncorrectAssetAuthority
     )]
     pub asset: Account<'info, Asset>,
 }
 
 pub fn handler<'info>(ctx: Context<DeleteAsset>) -> Result<()> {
     if (*ctx.accounts.asset).sold + (*ctx.accounts.asset).shared > (*ctx.accounts.asset).used {
-            return Err(ErrorCode::UnusedTokenExists.into());
+            return Err(ErrorCode::UsersStillHoldUnusedTokens.into());
     }
 
     Ok(())

@@ -41,11 +41,11 @@ pub struct BuyAsset<'info> {
     pub asset_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = buyer_transfer_vault.mint == asset.accepted_mint @ ErrorCode::WrongBuyerMintProvided
+        constraint = buyer_transfer_vault.mint == asset.accepted_mint @ ErrorCode::IncorrectBuyerTokenAccountOnTransfer
     )]
     pub buyer_transfer_vault: Account<'info, TokenAccount>, // buyer token account to pay
     #[account(
-        constraint = accepted_mint.key() == asset.accepted_mint.key()
+        constraint = accepted_mint.key() == asset.accepted_mint.key() @ ErrorCode::IncorrectPaymentToken
     )]
     pub accepted_mint: Account<'info, Mint>,
     #[account(
@@ -75,7 +75,7 @@ pub struct BuyAsset<'info> {
     pub payment_vault: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
-        constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::WrongTokenAccount
+        constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
     )]
     pub buyer_minted_token_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store Asset token
 }

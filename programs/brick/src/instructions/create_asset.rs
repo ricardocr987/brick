@@ -34,7 +34,7 @@ pub struct CreateAsset<'info> {
             b"asset_mint".as_ref(),
             hash_id.as_ref(), 
             // initially the hash_id was used as a seed in the asset account and in the mint was used the asset key
-            // makes more sense like this as explained up
+            // makes more sense like this as explained below
         ],
         bump,
     )]

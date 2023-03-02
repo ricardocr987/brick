@@ -26,7 +26,7 @@ pub struct ShareAsset<'info> {
             asset.asset_mint.as_ref(),
         ],
         bump = asset.bump,
-        constraint = authority.key() == asset.authority @ ErrorCode::WrongAssetAuthority
+        constraint = asset.authority == authority.key() @ ErrorCode::IncorrectAssetAuthority
     )]
     pub asset: Account<'info, Asset>,
     #[account(
@@ -40,7 +40,7 @@ pub struct ShareAsset<'info> {
     pub asset_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = receiver_minted_token_vault.mint == asset_mint.key() @ ErrorCode::WrongTokenAccount
+        constraint = receiver_minted_token_vault.mint == asset_mint.key() @ ErrorCode::IncorrectReceiverTokenAccount
     )]
     pub receiver_minted_token_vault: Box<Account<'info, TokenAccount>>,
 }

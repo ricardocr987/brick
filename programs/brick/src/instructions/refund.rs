@@ -30,7 +30,7 @@ pub struct Refund<'info> {
     pub asset_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = receiver_vault.mint == asset.accepted_mint @ ErrorCode::WrongBuyerMintProvided
+        constraint = receiver_vault.mint == asset.accepted_mint @ ErrorCode::IncorrectReceiverTokenAccount
     )]
     pub receiver_vault: Account<'info, TokenAccount>,
     #[account(
@@ -42,7 +42,7 @@ pub struct Refund<'info> {
             payment.payment_timestamp.to_le_bytes().as_ref(),
         ],
         bump = payment.bump,
-        constraint = authority.key() == payment.buyer,
+        constraint = authority.key() == payment.buyer @ ErrorCode::IncorrectPaymentAuthority,
         close = authority,
     )]
     pub payment: Account<'info, Payment>,
@@ -53,12 +53,12 @@ pub struct Refund<'info> {
             payment.key().as_ref(),
         ],
         bump = payment.bump_vault,
-        constraint = payment_vault.owner == payment.key() && payment_vault.mint == asset.accepted_mint.key(),
+        constraint = payment_vault.owner == payment.key() && payment_vault.mint == asset.accepted_mint.key() @ ErrorCode::IncorrectPaymentVault,
     )]
     pub payment_vault: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
-        constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::WrongTokenAccount
+        constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
     )]
     pub buyer_minted_token_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store Asset token
 }
@@ -68,6 +68,7 @@ pub fn handler<'info>(ctx: Context<Refund>) -> Result<()> {
     if ctx.accounts.payment.payment_timestamp + ctx.accounts.asset.timestamp_funds_vault < clock.unix_timestamp as u64 {
         return Err(ErrorCode::TimeForRefundHasConsumed.into());
     }
+    (*ctx.accounts.asset).sold -= ctx.accounts.payment.exemplars;
     (*ctx.accounts.asset).refunded += ctx.accounts.payment.exemplars;
 
     let payment_timestamp = ctx.accounts.payment.payment_timestamp.to_le_bytes();

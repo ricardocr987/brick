@@ -17,7 +17,7 @@ import { delay, initNewAccounts } from "./utils";
 import { Brick } from "../target/types/brick";
 import { Connection } from "@solana/web3.js";
 
-describe("token_access", () => {
+describe("brick", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.Brick as Program<Brick>;
@@ -438,7 +438,7 @@ describe("token_access", () => {
         .rpc();
     } catch (e) {
       if (e as AnchorError)
-        assert.equal(e.error.errorCode.code, "ConstraintRaw");
+        assert.equal(e.error.errorCode.code, "IncorrectPaymentAuthority");
     }
     try {
       await program.methods
@@ -602,7 +602,7 @@ describe("token_access", () => {
         .rpc();
     } catch (e) {
       if (e as AnchorError)
-        assert.equal(e.error.errorCode.code, "UnusedTokenExists");
+        assert.equal(e.error.errorCode.code, "UsersStillHoldUnusedTokens");
     }
 
     // preTx info
@@ -895,7 +895,7 @@ describe("token_access", () => {
         .rpc();
     } catch (e) {
       if (e as AnchorError)
-        assert.equal(e.error.errorCode.code, "WrongAssetAuthority");
+        assert.equal(e.error.errorCode.code, "IncorrectAssetAuthority");
     }
   });
 
@@ -1033,7 +1033,7 @@ describe("token_access", () => {
         .rpc();
     } catch (e) {
       if (e as AnchorError)
-        assert.equal(e.error.errorCode.code, "ConstraintRaw");
+        assert.equal(e.error.errorCode.code, "IncorrectPaymentAuthority");
     }
 
     await program.methods
@@ -1070,7 +1070,7 @@ describe("token_access", () => {
     const tokenPrice = 2;
     const exemplars = 2;
     const quantityPerExemplars = 1;
-    const refundTime = new anchor.BN(5); // it is introduced in seconds
+    const refundTime = new anchor.BN(3); // it is introduced in seconds
     const {
       sellerKeypair,
       acceptedMintPublicKey,
@@ -1159,7 +1159,7 @@ describe("token_access", () => {
       BigInt(tokenPrice * exemplars)
     );
 
-    await delay(5000) // i've created 5s refund time, we wait that time
+    await delay(5000) // i've created 3s refund time, it waits 5s
 
     // check if the buyer can withdraw the funds when the seller is the authority
     try {
@@ -1180,7 +1180,7 @@ describe("token_access", () => {
         .rpc();
     } catch (e) {
       if (e as AnchorError)
-        assert.equal(e.error.errorCode.code, "ConstraintRaw");
+        assert.equal(e.error.errorCode.code, "IncorrectPaymentAuthority");
     }
     try {
       await program.methods

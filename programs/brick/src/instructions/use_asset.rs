@@ -35,12 +35,12 @@ pub struct UseAsset<'info> {
             asset.hash_id.as_ref(),
         ],
         bump = asset.mint_bump,
-        constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::WrongTokenAccount
+        constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
     )]
     pub asset_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = buyer_minted_token_vault.owner == authority.key() @ ErrorCode::WrongTokenOwner
+        constraint = buyer_minted_token_vault.owner == authority.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
     )]
     pub buyer_minted_token_vault: Box<Account<'info, TokenAccount>>,
     /*#[account(
@@ -93,7 +93,7 @@ pub fn handler<'info>(ctx: Context<UseAsset>, exemplars: u32) -> Result<()> {
     it is a disaster to send the funds to the seller when the buyer burns the token, because it can 
     happen that he has bought twice the same token (different txns), then there are two payments accounts 
     with the necessary information to execute that transfer (simplified example). parameterizing the 
-    copies at the instruction level in this case is annoying, but I think it is better to keep that 
+    exemplars at the instruction level in this case is annoying, but I think it is better to keep that 
     and make the seller wait the established time to withdraw the funds
 
     let payment_timestamp = ctx.accounts.payment.payment_timestamp.to_le_bytes();

@@ -2,22 +2,26 @@ use anchor_lang::error_code;
 
 #[error_code]
 pub enum ErrorCode {
-    #[msg("There are not enough tokens to buy")]
-    NotEnoughTokensAvailable,
-    #[msg("You are providing a wrong seller mint")]
-    WrongSellerMintProvided,
-    #[msg("You are providing a wrong buyer mint")]
-    WrongBuyerMintProvided,
-    #[msg("You are providing a wrong token account where the Asset token is stored")]
-    WrongTokenAccount,
-    #[msg("You are trying to use an token that you don't own")]
-    WrongTokenOwner,
-    #[msg("There are still users with the token available for use")]
-    UnusedTokenExists,
-    #[msg("You are not the owner of this asset")]
-    WrongAssetAuthority,
     #[msg("Refund time has consumed")]
     TimeForRefundHasConsumed,
     #[msg("You cannot withdraw these funds yet")]
-    CannotWithdrawYet
+    CannotWithdrawYet,
+    #[msg("There are not enough tokens to buy")]
+    NotEnoughTokensAvailable,
+    #[msg("There are still users with a token available for use")]
+    UsersStillHoldUnusedTokens,
+    #[msg("You are trying to pay a different mint than the one stated by the seller")]
+    IncorrectPaymentToken,
+    #[msg("You are providing a wrong buyer token account, is where the funds come from to pay")]
+    IncorrectBuyerTokenAccountOnTransfer,
+    #[msg("You are providing a wrong buyer token account, is where the access token will be received")]
+    IncorrectBuyerTokenAccountToStorePurchasedToken,
+    #[msg("You are not the owner of this asset account")]
+    IncorrectAssetAuthority,
+    #[msg("You are not the owner of this payment account")]
+    IncorrectPaymentAuthority,
+    #[msg("You are providing a worng payment vault")]
+    IncorrectPaymentVault,
+    #[msg("You are providing an incorrect token account")]
+    IncorrectReceiverTokenAccount,
 }

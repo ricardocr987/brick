@@ -30,7 +30,7 @@ pub struct WithdrawFunds<'info> {
     pub asset_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = receiver_vault.mint == asset.accepted_mint @ ErrorCode::WrongBuyerMintProvided
+        constraint = receiver_vault.mint == asset.accepted_mint @ ErrorCode::IncorrectReceiverTokenAccount
     )]
     pub receiver_vault: Account<'info, TokenAccount>,
     /// CHECK: there is a constraint that confirms if this account is the buyer account
@@ -49,7 +49,7 @@ pub struct WithdrawFunds<'info> {
             payment.payment_timestamp.to_le_bytes().as_ref(),
         ],
         bump = payment.bump,
-        constraint = authority.key() == payment.seller, // will be better checked in the handler
+        constraint = authority.key() == payment.seller @ ErrorCode::IncorrectPaymentAuthority,
         close = buyer,
     )]
     pub payment: Account<'info, Payment>,
@@ -60,7 +60,7 @@ pub struct WithdrawFunds<'info> {
             payment.key().as_ref(),
         ],
         bump = payment.bump_vault,
-        constraint = payment_vault.owner == payment.key() && payment_vault.mint == asset.accepted_mint.key()
+        constraint = payment_vault.owner == payment.key() && payment_vault.mint == asset.accepted_mint.key() @ ErrorCode::IncorrectPaymentVault,
     )]
     pub payment_vault: Box<Account<'info, TokenAccount>>,
 }
