@@ -45,7 +45,7 @@ pub struct Refund<'info> {
         constraint = authority.key() == payment.buyer @ ErrorCode::IncorrectPaymentAuthority,
         close = authority,
     )]
-    pub payment: Account<'info, Payment>,
+    pub payment: Box<Account<'info, Payment>>,
     #[account(
         mut,
         seeds = [

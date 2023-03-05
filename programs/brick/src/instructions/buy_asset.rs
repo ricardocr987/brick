@@ -60,7 +60,7 @@ pub struct BuyAsset<'info> {
         ],
         bump,
     )]
-    pub payment: Account<'info, Payment>,
+    pub payment: Box<Account<'info, Payment>>,
     #[account(
         init,
         payer = authority,

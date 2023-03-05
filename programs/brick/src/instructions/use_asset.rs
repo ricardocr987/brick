@@ -60,7 +60,7 @@ pub struct UseAsset<'info> {
         constraint = authority.key() == payment.buyer, // will be better checked in the handler
         close = authority,
     )]
-    pub payment: Account<'info, Payment>,
+    pub payment: Box<Account<'info, Payment>>,
     #[account(
         mut,
         seeds = [

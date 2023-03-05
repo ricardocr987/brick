@@ -52,7 +52,7 @@ pub struct WithdrawFunds<'info> {
         constraint = authority.key() == payment.seller @ ErrorCode::IncorrectPaymentAuthority,
         close = buyer,
     )]
-    pub payment: Account<'info, Payment>,
+    pub payment: Box<Account<'info, Payment>>,
     #[account(
         mut,
         seeds = [
