@@ -18,10 +18,10 @@ export async function initNewAccounts(
 ) {
   const sellerKeypair = await createFundedWallet(provider, 20);
   const acceptedMintPublicKey = await createMint(provider);
-  const hashIdAux: string = uuid();
-  const hashId = hashIdAux.substring(0, 32);
+  const offChainIdAux: string = uuid();
+  const offChainId = offChainIdAux.substring(0, 32);
   const [assetMint] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("asset_mint", "utf-8"), Buffer.from(hashId, "utf-8")],
+    [Buffer.from("asset_mint", "utf-8"), Buffer.from(offChainId, "utf-8")],
     program.programId
   );
   const [assetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -29,7 +29,7 @@ export async function initNewAccounts(
     program.programId
   );
   const buyerKeypair = await createFundedWallet(provider, 20);
-  const buyerMintedTokenVault = await getAssociatedTokenAddress(
+  const buyerTokenVault = await getAssociatedTokenAddress(
     assetMint,
     buyerKeypair.publicKey
   );
@@ -47,6 +47,20 @@ export async function initNewAccounts(
   );
   const [paymentVaultPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("payment_vault", "utf-8"), paymentPublicKey.toBuffer()],
+    program.programId
+  );
+  const secondBuyTimestamp = new anchor.BN(await connection.getBlockTime(slot) + 1);
+  const [secondPaymentPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("payment", "utf-8"),
+      assetMint.toBuffer(),
+      buyerKeypair.publicKey.toBuffer(),
+      secondBuyTimestamp.toBuffer("le", 8),
+    ],
+    program.programId
+  );
+  const [secondPaymentVaultPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("payment_vault", "utf-8"), secondPaymentPublicKey.toBuffer()],
     program.programId
   );
   let buyerTransferVault = undefined;
@@ -69,15 +83,18 @@ export async function initNewAccounts(
   return {
     sellerKeypair,
     acceptedMintPublicKey,
-    hashId,
+    offChainId,
     assetPublicKey,
     assetMint,
     buyerKeypair,
-    buyerMintedTokenVault,
+    buyerTokenVault,
     buyerTransferVault,
     sellerTransferVault,
     buyTimestamp,
     paymentPublicKey,
     paymentVaultPublicKey,
+    secondBuyTimestamp,
+    secondPaymentPublicKey,
+    secondPaymentVaultPublicKey,
   };
 }

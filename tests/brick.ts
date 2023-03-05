@@ -40,31 +40,30 @@ describe("brick", () => {
     const sellerBalance = 2;
     const tokenPrice = 2;
     const exemplars = -1; // makes the token can be sold unlimited times
-    const exemplarsToBuy = 2;
-    const quantityPerExemplars = 1;
     const {
       sellerKeypair,
       acceptedMintPublicKey,
       assetPublicKey,
-      hashId,
+      offChainId,
       assetMint,
       buyerKeypair,
-      buyerMintedTokenVault,
+      buyerTokenVault,
       buyerTransferVault,
       buyTimestamp,
       paymentPublicKey,
       paymentVaultPublicKey,
+      secondBuyTimestamp,
+      secondPaymentPublicKey,
+      secondPaymentVaultPublicKey,
     } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
 
     await program.methods
       .createAsset(
-        hashId,
+        offChainId,
         appName,
-        hashId,
         noRefundTime,
         tokenPrice,
         exemplars,
-        quantityPerExemplars,
         tokenName,
         tokenSymbol,
         tokenUri
@@ -85,22 +84,23 @@ describe("brick", () => {
     );
     assert.isDefined(preBuyAssetAccount);
     assert.equal(preBuyAssetAccount.appName, appName);
-    assert.equal(preBuyAssetAccount.hashId, hashId);
-    assert.equal(preBuyAssetAccount.itemHash, hashId);
-    assert.equal(preBuyAssetAccount.assetMint.toString(), assetMint.toString());
+    assert.equal(preBuyAssetAccount.offChainId, offChainId);
     assert.equal(
       preBuyAssetAccount.acceptedMint.toString(),
       acceptedMintPublicKey.toString()
     );
+    assert.equal(preBuyAssetAccount.assetMint.toString(), assetMint.toString());
     assert.equal(
       preBuyAssetAccount.authority.toString(),
       sellerKeypair.publicKey.toString()
     );
+    assert.equal(Number(preBuyAssetAccount.refundTimespan), Number(noRefundTime));
     assert.equal(preBuyAssetAccount.price, tokenPrice);
     assert.equal(preBuyAssetAccount.sold, 0);
     assert.equal(preBuyAssetAccount.used, 0);
+    assert.equal(preBuyAssetAccount.shared, 0);
+    assert.equal(preBuyAssetAccount.refunded, 0);
     assert.equal(preBuyAssetAccount.exemplars, exemplars);
-    assert.equal(preBuyAssetAccount.quantityPerExemplars, quantityPerExemplars);
 
     const preBuyAssetMintAccount = await getMint(
       provider.connection,
@@ -127,7 +127,7 @@ describe("brick", () => {
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
           provider.wallet.publicKey,
-          buyerMintedTokenVault,
+          buyerTokenVault,
           buyerKeypair.publicKey,
           assetMint
         )
@@ -135,7 +135,7 @@ describe("brick", () => {
     );
 
     await program.methods
-      .buyAsset(buyTimestamp, exemplarsToBuy)
+      .buyAsset(buyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
@@ -144,7 +144,25 @@ describe("brick", () => {
         acceptedMint: acceptedMintPublicKey,
         payment: paymentPublicKey,
         paymentVault: paymentVaultPublicKey,
-        buyerMintedTokenVault: buyerMintedTokenVault,
+        buyerTokenVault: buyerTokenVault,
+      })
+      .signers(
+        buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    await program.methods
+      .buyAsset(secondBuyTimestamp)
+      .accounts({
+        authority: buyerKeypair.publicKey,
+        asset: assetPublicKey,
+        assetMint: assetMint,
+        buyerTransferVault: buyerTransferVault,
+        acceptedMint: acceptedMintPublicKey,
+        payment: secondPaymentPublicKey,
+        paymentVault: secondPaymentVaultPublicKey,
+        buyerTokenVault: buyerTokenVault,
       })
       .signers(
         buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -153,23 +171,28 @@ describe("brick", () => {
       .catch(console.error);
 
     const paymentAccount = await program.account.payment.fetch(paymentPublicKey);
-    assert.equal(paymentAccount.appName, appName);
     assert.equal(paymentAccount.assetMint.toString(), assetMint.toString());
     assert.equal(paymentAccount.seller.toString(), sellerKeypair.publicKey.toString());
     assert.equal(paymentAccount.buyer.toString(), buyerKeypair.publicKey.toString());
-    assert.equal(paymentAccount.exemplars, exemplarsToBuy);
     assert.equal(paymentAccount.price, tokenPrice);
-    assert.equal(Number(paymentAccount.totalAmount), exemplarsToBuy*tokenPrice);
     assert.equal(Number(paymentAccount.paymentTimestamp), Number(buyTimestamp));
-    assert.equal(Number(paymentAccount.sellerReceiveFundsTimestamp), Number(buyTimestamp));
+    assert.equal(Number(paymentAccount.refundConsumedAt), Number(buyTimestamp));
+
+    const secondPaymentAccount = await program.account.payment.fetch(secondPaymentPublicKey);
+    assert.equal(secondPaymentAccount.assetMint.toString(), assetMint.toString());
+    assert.equal(secondPaymentAccount.seller.toString(), sellerKeypair.publicKey.toString());
+    assert.equal(secondPaymentAccount.buyer.toString(), buyerKeypair.publicKey.toString());
+    assert.equal(secondPaymentAccount.price, tokenPrice);
+    assert.equal(Number(secondPaymentAccount.paymentTimestamp), Number(secondBuyTimestamp));
+    assert.equal(Number(secondPaymentAccount.refundConsumedAt), Number(secondBuyTimestamp));
 
     // postTxInfo
     const assetAccount = await program.account.asset.fetch(assetPublicKey);
     assert.isDefined(assetAccount);
-    assert.equal(assetAccount.sold, exemplarsToBuy);
+    assert.equal(assetAccount.sold, 2);
 
     const assetMintAccount = await getMint(provider.connection, assetMint);
-    assert.equal(assetMintAccount.supply, BigInt(exemplarsToBuy));
+    assert.equal(assetMintAccount.supply, BigInt(2));
 
     // check if the buyer is able to mint more tokens from the units bought
     // impossible, the mint authority is the asset pda, only is possible calling
@@ -197,30 +220,30 @@ describe("brick", () => {
     const sellerBalance = 2;
     const tokenPrice = 2;
     const exemplars = 2;
-    const quantityPerExemplars = 1;
     const {
       sellerKeypair,
       acceptedMintPublicKey,
       assetPublicKey,
-      hashId,
+      offChainId,
       assetMint,
       buyerKeypair,
-      buyerMintedTokenVault,
+      buyerTokenVault,
       buyerTransferVault,
       buyTimestamp,
       paymentPublicKey,
       paymentVaultPublicKey,
+      secondBuyTimestamp,
+      secondPaymentPublicKey,
+      secondPaymentVaultPublicKey,
     } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
 
     await program.methods
       .createAsset(
-        hashId,
+        offChainId,
         appName,
-        hashId,
         noRefundTime,
         tokenPrice,
         exemplars,
-        quantityPerExemplars,
         tokenName,
         tokenSymbol,
         tokenUri
@@ -241,7 +264,7 @@ describe("brick", () => {
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
           provider.wallet.publicKey,
-          buyerMintedTokenVault,
+          buyerTokenVault,
           buyerKeypair.publicKey,
           assetMint
         )
@@ -249,7 +272,7 @@ describe("brick", () => {
     );
 
     await program.methods
-      .buyAsset(buyTimestamp, exemplars)
+      .buyAsset(buyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
@@ -258,7 +281,25 @@ describe("brick", () => {
         acceptedMint: acceptedMintPublicKey,
         payment: paymentPublicKey,
         paymentVault: paymentVaultPublicKey,
-        buyerMintedTokenVault: buyerMintedTokenVault,
+        buyerTokenVault: buyerTokenVault,
+      })
+      .signers(
+        buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+    
+    await program.methods
+      .buyAsset(secondBuyTimestamp)
+      .accounts({
+        authority: buyerKeypair.publicKey,
+        asset: assetPublicKey,
+        assetMint: assetMint,
+        buyerTransferVault: buyerTransferVault,
+        acceptedMint: acceptedMintPublicKey,
+        payment: secondPaymentPublicKey,
+        paymentVault: secondPaymentVaultPublicKey,
+        buyerTokenVault: buyerTokenVault,
       })
       .signers(
         buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -294,7 +335,7 @@ describe("brick", () => {
       );
     try {
       await program.methods
-        .buyAsset(newBuyTimeStamp, exemplars)
+        .buyAsset(newBuyTimeStamp)
         .accounts({
           authority: buyerKeypair.publicKey,
           asset: assetPublicKey,
@@ -303,7 +344,7 @@ describe("brick", () => {
           acceptedMint: acceptedMintPublicKey,
           payment: newPaymentPublicKey,
           paymentVault: newPaymentVaultPublicKey,
-          buyerMintedTokenVault: buyerMintedTokenVault,
+          buyerTokenVault: buyerTokenVault,
         })
         .signers(
           buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -321,21 +362,22 @@ describe("brick", () => {
     const oldTokenPrice = 1;
     const newTokenPrice = 2;
     const exemplars = -1; // makes the token can be sold unlimited times
-    const exemplarsToBuy = 2;
-    const quantityPerExemplars = 1;
     const {
       sellerKeypair,
       acceptedMintPublicKey,
       assetPublicKey,
-      hashId,
+      offChainId,
       assetMint,
       buyerKeypair,
-      buyerMintedTokenVault,
+      buyerTokenVault,
       buyerTransferVault,
       sellerTransferVault,
       buyTimestamp,
       paymentPublicKey,
       paymentVaultPublicKey,
+      secondBuyTimestamp,
+      secondPaymentPublicKey,
+      secondPaymentVaultPublicKey,
     } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
 
     const preTxBuyerFunds = await getAccount(
@@ -349,13 +391,11 @@ describe("brick", () => {
 
     await program.methods
       .createAsset(
-        hashId,
+        offChainId,
         appName,
-        hashId,
         noRefundTime,
         oldTokenPrice,
         exemplars,
-        quantityPerExemplars,
         tokenName,
         tokenSymbol,
         tokenUri
@@ -400,7 +440,7 @@ describe("brick", () => {
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
           provider.wallet.publicKey,
-          buyerMintedTokenVault,
+          buyerTokenVault,
           buyerKeypair.publicKey,
           assetMint
         )
@@ -408,7 +448,7 @@ describe("brick", () => {
     );
 
     await program.methods
-      .buyAsset(buyTimestamp, exemplarsToBuy)
+      .buyAsset(buyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
@@ -417,7 +457,25 @@ describe("brick", () => {
         acceptedMint: acceptedMintPublicKey,
         payment: paymentPublicKey,
         paymentVault: paymentVaultPublicKey,
-        buyerMintedTokenVault: buyerMintedTokenVault,
+        buyerTokenVault: buyerTokenVault,
+      })
+      .signers(
+        buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    await program.methods
+      .buyAsset(secondBuyTimestamp)
+      .accounts({
+        authority: buyerKeypair.publicKey,
+        asset: assetPublicKey,
+        assetMint: assetMint,
+        buyerTransferVault: buyerTransferVault,
+        acceptedMint: acceptedMintPublicKey,
+        payment: secondPaymentPublicKey,
+        paymentVault: secondPaymentVaultPublicKey,
+        buyerTokenVault: buyerTokenVault,
       })
       .signers(
         buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -461,7 +519,7 @@ describe("brick", () => {
           receiverVault: buyerTransferVault,
           payment: paymentPublicKey,
           paymentVault: paymentVaultPublicKey,
-          buyerMintedTokenVault: buyerMintedTokenVault,
+          buyerTokenVault: buyerTokenVault,
         })
         .signers(
           buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -489,6 +547,23 @@ describe("brick", () => {
       .rpc()
       .catch(console.error);
 
+    await program.methods
+      .withdrawFunds()
+      .accounts({
+        authority: sellerKeypair.publicKey,
+        asset: assetPublicKey,
+        assetMint: assetMint,
+        receiverVault: sellerTransferVault,
+        payment: secondPaymentPublicKey,
+        buyer: buyerKeypair.publicKey,
+        paymentVault: secondPaymentVaultPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
     const postTxBuyerFunds = await getAccount(
       provider.connection,
       buyerTransferVault
@@ -501,7 +576,7 @@ describe("brick", () => {
     const assetAccount = await program.account.asset.fetch(assetPublicKey);
     const buyerTokenVaultAccount = await getAccount(
       provider.connection,
-      buyerMintedTokenVault
+      buyerTokenVault
     );
 
     // Assert buyer token account changed
@@ -509,36 +584,35 @@ describe("brick", () => {
     assert.isDefined(postTxBuyerFunds);
     assert.equal(
       postTxBuyerFunds.amount,
-      preTxBuyerFunds.amount - BigInt(assetAccount.price * exemplarsToBuy)
+      preTxBuyerFunds.amount - BigInt(assetAccount.price * 2)
     );
     // Assert seller token account changed
     assert.isDefined(preTxSellerFunds);
     assert.isDefined(postTxSellerFunds);
     assert.equal(
       postTxSellerFunds.amount,
-      preTxSellerFunds.amount + BigInt(assetAccount.price * exemplarsToBuy)
+      preTxSellerFunds.amount + BigInt(assetAccount.price * 2)
     );
     // Assert master edition account values changed
-    assert.isDefined(buyerMintedTokenVault);
-    assert.equal(buyerTokenVaultAccount.amount, BigInt(exemplarsToBuy));
+    assert.isDefined(buyerTokenVault);
+    assert.equal(buyerTokenVaultAccount.amount, BigInt(2));
     assert.isDefined(mintedassetMint);
-    assert.equal(mintedassetMint.supply, BigInt(exemplarsToBuy));
+    assert.equal(mintedassetMint.supply, BigInt(2));
   });
 
   it("Use asset test: seller try to close account with unused tokens, when all are used should allow to close the accounts", async () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const tokenPrice = 2;
-    const exemplars = 2;
-    const quantityPerExemplars = 1;
+    const exemplars = 1;
     const {
       sellerKeypair,
       acceptedMintPublicKey,
       assetPublicKey,
-      hashId,
+      offChainId,
       assetMint,
       buyerKeypair,
-      buyerMintedTokenVault,
+      buyerTokenVault,
       buyerTransferVault,
       buyTimestamp,
       paymentPublicKey,
@@ -547,13 +621,11 @@ describe("brick", () => {
 
     await program.methods
       .createAsset(
-        hashId,
+        offChainId,
         appName,
-        hashId,
         noRefundTime,
         tokenPrice,
         exemplars,
-        quantityPerExemplars,
         tokenName,
         tokenSymbol,
         tokenUri
@@ -574,7 +646,7 @@ describe("brick", () => {
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
           provider.wallet.publicKey,
-          buyerMintedTokenVault,
+          buyerTokenVault,
           buyerKeypair.publicKey,
           assetMint
         )
@@ -582,7 +654,7 @@ describe("brick", () => {
     );
 
     await program.methods
-      .buyAsset(buyTimestamp, exemplars)
+      .buyAsset(buyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
@@ -591,7 +663,7 @@ describe("brick", () => {
         acceptedMint: acceptedMintPublicKey,
         payment: paymentPublicKey,
         paymentVault: paymentVaultPublicKey,
-        buyerMintedTokenVault: buyerMintedTokenVault,
+        buyerTokenVault: buyerTokenVault,
       })
       .signers(
         buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -625,12 +697,12 @@ describe("brick", () => {
     assert.equal(preUseAssetAccount.sold, exemplars);
 
     await program.methods
-      .useAsset(exemplars)
+      .useAsset()
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
         assetMint: assetMint,
-        buyerMintedTokenVault: buyerMintedTokenVault,
+        buyerTokenVault: buyerTokenVault,
       })
       .signers(
         buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -673,17 +745,16 @@ describe("brick", () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const tokenPrice = 2;
-    const exemplars = 2;
+    const exemplars = 1;
     const refundTime = new anchor.BN(50000)
-    const quantityPerExemplars = 1;
     const {
       sellerKeypair,
       acceptedMintPublicKey,
       assetPublicKey,
-      hashId,
+      offChainId,
       assetMint,
       buyerKeypair,
-      buyerMintedTokenVault,
+      buyerTokenVault,
       buyerTransferVault,
       buyTimestamp,
       paymentPublicKey,
@@ -692,13 +763,11 @@ describe("brick", () => {
 
     await program.methods
       .createAsset(
-        hashId,
+        offChainId,
         appName,
-        hashId,
         refundTime,
         tokenPrice,
         exemplars,
-        quantityPerExemplars,
         tokenName,
         tokenSymbol,
         tokenUri
@@ -719,7 +788,7 @@ describe("brick", () => {
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
           provider.wallet.publicKey,
-          buyerMintedTokenVault,
+          buyerTokenVault,
           buyerKeypair.publicKey,
           assetMint
         )
@@ -727,19 +796,19 @@ describe("brick", () => {
     );
 
     await program.methods
-      .useAsset(exemplars)
+      .useAsset()
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
         assetMint: assetMint,
-        buyerMintedTokenVault: buyerMintedTokenVault,
+        buyerTokenVault: buyerTokenVault,
       })
       .signers(
         buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
       )
       .preInstructions([
         await program.methods
-          .buyAsset(buyTimestamp, exemplars)
+          .buyAsset(buyTimestamp)
           .accounts({
             authority: buyerKeypair.publicKey,
             asset: assetPublicKey,
@@ -748,7 +817,7 @@ describe("brick", () => {
             acceptedMint: acceptedMintPublicKey,
             payment: paymentPublicKey,
             paymentVault: paymentVaultPublicKey,
-            buyerMintedTokenVault: buyerMintedTokenVault,
+            buyerTokenVault: buyerTokenVault,
           })
           .instruction(),
       ])
@@ -766,7 +835,7 @@ describe("brick", () => {
           receiverVault: buyerTransferVault,
           payment: paymentPublicKey,
           paymentVault: paymentVaultPublicKey,
-          buyerMintedTokenVault: buyerMintedTokenVault,
+          buyerTokenVault: buyerTokenVault,
         })
         .signers(
           buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -797,26 +866,23 @@ describe("brick", () => {
     const tokenPrice = 2;
     const exemplars = -1; // makes the token can be sold unlimited times
     const exemplarsToShare = 2;
-    const quantityPerExemplars = 1;
     const {
       sellerKeypair,
       acceptedMintPublicKey,
       assetPublicKey,
-      hashId,
+      offChainId,
       assetMint,
       buyerKeypair,
-      buyerMintedTokenVault,
+      buyerTokenVault,
     } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
 
     await program.methods
       .createAsset(
-        hashId,
+        offChainId,
         appName,
-        hashId,
         noRefundTime,
         tokenPrice,
         exemplars,
-        quantityPerExemplars,
         tokenName,
         tokenSymbol,
         tokenUri
@@ -837,12 +903,7 @@ describe("brick", () => {
     );
     assert.isDefined(preShareAssetAccount);
     assert.equal(preShareAssetAccount.appName, appName);
-    assert.equal(preShareAssetAccount.hashId, hashId);
-    assert.equal(preShareAssetAccount.itemHash, hashId);
-    assert.equal(
-      preShareAssetAccount.assetMint.toString(),
-      assetMint.toString()
-    );
+    assert.equal(preShareAssetAccount.offChainId, offChainId);
     assert.equal(
       preShareAssetAccount.acceptedMint.toString(),
       acceptedMintPublicKey.toString()
@@ -855,10 +916,6 @@ describe("brick", () => {
     assert.equal(preShareAssetAccount.sold, 0);
     assert.equal(preShareAssetAccount.used, 0);
     assert.equal(preShareAssetAccount.exemplars, exemplars);
-    assert.equal(
-      preShareAssetAccount.quantityPerExemplars,
-      quantityPerExemplars
-    );
 
     const preShareAssetMintAccount = await getMint(
       provider.connection,
@@ -885,7 +942,7 @@ describe("brick", () => {
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
           provider.wallet.publicKey,
-          buyerMintedTokenVault,
+          buyerTokenVault,
           buyerKeypair.publicKey,
           assetMint
         )
@@ -898,7 +955,7 @@ describe("brick", () => {
         authority: sellerKeypair.publicKey,
         asset: assetPublicKey,
         assetMint: assetMint,
-        receiverMintedTokenVault: buyerMintedTokenVault,
+        receiverVault: buyerTokenVault,
       })
       .signers(
         sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
@@ -921,7 +978,7 @@ describe("brick", () => {
           authority: buyerKeypair.publicKey,
           asset: assetPublicKey,
           assetMint: assetMint,
-          receiverMintedTokenVault: buyerMintedTokenVault,
+          receiverVault: buyerTokenVault,
         })
         .signers(
           buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -937,17 +994,16 @@ describe("brick", () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const tokenPrice = 2;
-    const exemplars = 2;
-    const quantityPerExemplars = 1;
+    const exemplars = 1;
     const refundTime = new anchor.BN(60000);
     const {
       sellerKeypair,
       acceptedMintPublicKey,
       assetPublicKey,
-      hashId,
+      offChainId,
       assetMint,
       buyerKeypair,
-      buyerMintedTokenVault,
+      buyerTokenVault,
       buyerTransferVault,
       buyTimestamp,
       paymentPublicKey,
@@ -957,13 +1013,11 @@ describe("brick", () => {
 
     await program.methods
       .createAsset(
-        hashId,
+        offChainId,
         appName,
-        hashId,
         refundTime,
         tokenPrice,
         exemplars,
-        quantityPerExemplars,
         tokenName,
         tokenSymbol,
         tokenUri
@@ -984,7 +1038,7 @@ describe("brick", () => {
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
           provider.wallet.publicKey,
-          buyerMintedTokenVault,
+          buyerTokenVault,
           buyerKeypair.publicKey,
           assetMint
         )
@@ -997,7 +1051,7 @@ describe("brick", () => {
     );
 
     await program.methods
-      .buyAsset(buyTimestamp, exemplars)
+      .buyAsset(buyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
@@ -1006,7 +1060,7 @@ describe("brick", () => {
         acceptedMint: acceptedMintPublicKey,
         payment: paymentPublicKey,
         paymentVault: paymentVaultPublicKey,
-        buyerMintedTokenVault: buyerMintedTokenVault,
+        buyerTokenVault: buyerTokenVault,
       })
       .signers(
         buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -1059,7 +1113,7 @@ describe("brick", () => {
           receiverVault: sellerTransferVault,
           payment: paymentPublicKey,
           paymentVault: paymentVaultPublicKey,
-          buyerMintedTokenVault: buyerMintedTokenVault,
+          buyerTokenVault: buyerTokenVault,
         })
         .signers(
           sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
@@ -1079,7 +1133,7 @@ describe("brick", () => {
         receiverVault: buyerTransferVault,
         payment: paymentPublicKey,
         paymentVault: paymentVaultPublicKey,
-        buyerMintedTokenVault: buyerMintedTokenVault,
+        buyerTokenVault: buyerTokenVault,
       })
       .signers(
         buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -1102,17 +1156,16 @@ describe("brick", () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const tokenPrice = 2;
-    const exemplars = 2;
-    const quantityPerExemplars = 1;
+    const exemplars = 1;
     const refundTime = new anchor.BN(3); // it is introduced in seconds
     const {
       sellerKeypair,
       acceptedMintPublicKey,
       assetPublicKey,
-      hashId,
+      offChainId,
       assetMint,
       buyerKeypair,
-      buyerMintedTokenVault,
+      buyerTokenVault,
       buyerTransferVault,
       buyTimestamp,
       paymentPublicKey,
@@ -1122,13 +1175,11 @@ describe("brick", () => {
 
     await program.methods
       .createAsset(
-        hashId,
+        offChainId,
         appName,
-        hashId,
         refundTime,
         tokenPrice,
         exemplars,
-        quantityPerExemplars,
         tokenName,
         tokenSymbol,
         tokenUri
@@ -1149,7 +1200,7 @@ describe("brick", () => {
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
           provider.wallet.publicKey,
-          buyerMintedTokenVault,
+          buyerTokenVault,
           buyerKeypair.publicKey,
           assetMint
         )
@@ -1162,7 +1213,7 @@ describe("brick", () => {
     );
 
     await program.methods
-      .buyAsset(buyTimestamp, exemplars)
+      .buyAsset(buyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
         asset: assetPublicKey,
@@ -1171,7 +1222,7 @@ describe("brick", () => {
         acceptedMint: acceptedMintPublicKey,
         payment: paymentPublicKey,
         paymentVault: paymentVaultPublicKey,
-        buyerMintedTokenVault: buyerMintedTokenVault,
+        buyerTokenVault: buyerTokenVault,
       })
       .signers(
         buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
@@ -1226,7 +1277,7 @@ describe("brick", () => {
           receiverVault: buyerTransferVault,
           payment: paymentPublicKey,
           paymentVault: paymentVaultPublicKey,
-          buyerMintedTokenVault: buyerMintedTokenVault,
+          buyerTokenVault: buyerTokenVault,
         })
         .signers(
           buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
