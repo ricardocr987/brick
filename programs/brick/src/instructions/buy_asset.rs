@@ -34,7 +34,7 @@ pub struct BuyAsset<'info> {
         mut,
         seeds = [
             b"asset_mint".as_ref(),
-            asset.hash_id.as_ref(),
+            asset.off_chain_id.as_ref(),
         ],
         bump = asset.mint_bump
     )]
@@ -60,7 +60,7 @@ pub struct BuyAsset<'info> {
         ],
         bump,
     )]
-    pub payment: Box<Account<'info, Payment>>,
+    pub payment: Account<'info, Payment>,
     #[account(
         init,
         payer = authority,
@@ -75,34 +75,25 @@ pub struct BuyAsset<'info> {
     pub payment_vault: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
-        constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
+        constraint = buyer_token_vault.mint == asset_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
     )]
-    pub buyer_minted_token_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store Asset token
+    pub buyer_token_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store Asset token
 }
 
-pub fn handler<'info>(ctx: Context<BuyAsset>, timestamp: u64, exemplars: u32) -> Result<()> {
-    if 
-        (*ctx.accounts.asset).exemplars > -1 && 
-        (*ctx.accounts.asset).sold + exemplars > (*ctx.accounts.asset).exemplars as u32 {
-            return Err(ErrorCode::NotEnoughTokensAvailable.into());
+pub fn handler<'info>(ctx: Context<BuyAsset>, timestamp: u64) -> Result<()> {
+    if (*ctx.accounts.asset).exemplars > -1 && (*ctx.accounts.asset).sold + 1 > (*ctx.accounts.asset).exemplars as u32 {
+        return Err(ErrorCode::NotEnoughTokensAvailable.into());
     }
-    (*ctx.accounts.asset).sold += exemplars;
-    (*ctx.accounts.payment).app_name = ctx.accounts.asset.app_name.clone();
-    (*ctx.accounts.payment).payment_timestamp = timestamp;
-    (*ctx.accounts.payment).seller_receive_funds_timestamp = ctx.accounts.asset.timestamp_funds_vault + timestamp;
+
+    (*ctx.accounts.asset).sold += 1;
     (*ctx.accounts.payment).asset_mint = ctx.accounts.asset_mint.key();
     (*ctx.accounts.payment).seller = ctx.accounts.asset.authority;
     (*ctx.accounts.payment).buyer = ctx.accounts.authority.key();
+    (*ctx.accounts.payment).price = ctx.accounts.asset.price;
+    (*ctx.accounts.payment).payment_timestamp = timestamp;
+    (*ctx.accounts.payment).refund_consumed_at = ctx.accounts.asset.refund_timespan + timestamp;
     (*ctx.accounts.payment).bump = *ctx.bumps.get("payment").unwrap();
     (*ctx.accounts.payment).bump_vault = *ctx.bumps.get("payment_vault").unwrap();
-    (*ctx.accounts.payment).exemplars = exemplars;
-    (*ctx.accounts.payment).price = ctx.accounts.asset.price;
-    (*ctx.accounts.payment).total_amount = ctx.accounts
-        .asset
-        .price
-        .checked_mul(exemplars.into())
-        .unwrap()
-        .into();
 
     let seeds = &[
         b"asset".as_ref(),
@@ -120,7 +111,7 @@ pub fn handler<'info>(ctx: Context<BuyAsset>, timestamp: u64, exemplars: u32) ->
                 authority: ctx.accounts.authority.to_account_info(),
             },
         ),
-        ctx.accounts.payment.total_amount,
+        ctx.accounts.asset.price.into(),
     )?;
 
     // call mintTo instruction
@@ -129,12 +120,12 @@ pub fn handler<'info>(ctx: Context<BuyAsset>, timestamp: u64, exemplars: u32) ->
             ctx.accounts.token_program.to_account_info(),
             MintTo {
                 mint: ctx.accounts.asset_mint.to_account_info(),
-                to: ctx.accounts.buyer_minted_token_vault.to_account_info(),
+                to: ctx.accounts.buyer_token_vault.to_account_info(),
                 authority: ctx.accounts.asset.to_account_info(),
             },
             &[&seeds[..]],
         ),
-        exemplars.into()
+        1
     )?;
 
     Ok(())

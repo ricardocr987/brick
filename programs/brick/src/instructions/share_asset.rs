@@ -33,16 +33,16 @@ pub struct ShareAsset<'info> {
         mut,
         seeds = [
             b"asset_mint".as_ref(),
-            asset.hash_id.as_ref(),
+            asset.off_chain_id.as_ref(),
         ],
         bump = asset.mint_bump
     )]
     pub asset_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = receiver_minted_token_vault.mint == asset_mint.key() @ ErrorCode::IncorrectReceiverTokenAccount
+        constraint = receiver_vault.mint == asset_mint.key() @ ErrorCode::IncorrectReceiverTokenAccount
     )]
-    pub receiver_minted_token_vault: Box<Account<'info, TokenAccount>>,
+    pub receiver_vault: Box<Account<'info, TokenAccount>>,
 }
 
 pub fn handler<'info>(ctx: Context<ShareAsset>, exemplars: u32) -> Result<()> {
@@ -60,7 +60,7 @@ pub fn handler<'info>(ctx: Context<ShareAsset>, exemplars: u32) -> Result<()> {
             ctx.accounts.token_program.to_account_info(),
             MintTo {
                 mint: ctx.accounts.asset_mint.to_account_info(),
-                to: ctx.accounts.receiver_minted_token_vault.to_account_info(),
+                to: ctx.accounts.receiver_vault.to_account_info(),
                 authority: ctx.accounts.asset.to_account_info(),
             },
             &[&seeds[..]],

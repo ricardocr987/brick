@@ -14,26 +14,22 @@ pub mod brick {
 
     pub fn create_asset(
         ctx: Context<CreateAsset>,
-        hash_id: String,
+        off_chain_id: String,
         app_name: String,
-        item_hash: String,
-        timestamp_funds_vault: u64,
+        refund_timespan: u64,
         token_price: u32,
         exemplars: i32,
-        quantity_per_exemplars: u32,
         token_name: String,
         token_symbol: String,
         token_uri: String,
     ) -> Result<()> {
         create_asset::handler(
             ctx, 
-            hash_id,
+            off_chain_id,
             app_name,
-            item_hash,
-            timestamp_funds_vault,
+            refund_timespan,
             token_price,
             exemplars,
-            quantity_per_exemplars,
             token_name,
             token_symbol,
             token_uri,
@@ -44,8 +40,8 @@ pub mod brick {
         edit_asset_price::handler(ctx, token_price)
     }
 
-    pub fn buy_asset(ctx: Context<BuyAsset>, timestamp: u64, exemplars: u32) -> Result<()> {
-        buy_asset::handler(ctx, timestamp, exemplars)
+    pub fn buy_asset(ctx: Context<BuyAsset>, timestamp: u64) -> Result<()> {
+        buy_asset::handler(ctx, timestamp)
     }
 
     pub fn share_asset(ctx: Context<ShareAsset>, exemplars: u32) -> Result<()> {
@@ -60,8 +56,8 @@ pub mod brick {
         refund::handler(ctx)
     }
 
-    pub fn use_asset(ctx: Context<UseAsset>, exemplars: u32) -> Result<()> {
-        use_asset::handler(ctx, exemplars)
+    pub fn use_asset(ctx: Context<UseAsset>) -> Result<()> {
+        use_asset::handler(ctx)
     }
 
     pub fn delete_asset(ctx: Context<DeleteAsset>) -> Result<()> {

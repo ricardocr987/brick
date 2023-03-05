@@ -23,7 +23,7 @@ pub struct WithdrawFunds<'info> {
         mut,
         seeds = [
             b"asset_mint".as_ref(),
-            asset.hash_id.as_ref(),
+            asset.off_chain_id.as_ref(),
         ],
         bump = asset.mint_bump
     )]
@@ -52,7 +52,7 @@ pub struct WithdrawFunds<'info> {
         constraint = authority.key() == payment.seller @ ErrorCode::IncorrectPaymentAuthority,
         close = buyer,
     )]
-    pub payment: Box<Account<'info, Payment>>,
+    pub payment: Account<'info, Payment>,
     #[account(
         mut,
         seeds = [
@@ -68,7 +68,7 @@ pub struct WithdrawFunds<'info> {
 pub fn handler<'info>(ctx: Context<WithdrawFunds>) -> Result<()> {
     let clock = Clock::get()?;
 
-    if ctx.accounts.payment.payment_timestamp + ctx.accounts.asset.timestamp_funds_vault > clock.unix_timestamp as u64 {
+    if ctx.accounts.payment.refund_consumed_at > clock.unix_timestamp as u64 {
         return Err(ErrorCode::CannotWithdrawYet.into());
     }
     
@@ -91,7 +91,7 @@ pub fn handler<'info>(ctx: Context<WithdrawFunds>) -> Result<()> {
             },
             &[&seeds[..]],
         ),
-        ctx.accounts.payment.total_amount,
+        ctx.accounts.payment.price.into(),
     )?;
 
     close_account(

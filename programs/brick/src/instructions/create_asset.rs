@@ -15,7 +15,7 @@ use {
 };
 
 #[derive(Accounts)]
-#[instruction(hash_id: String)]
+#[instruction(off_chain_id: String)]
 pub struct CreateAsset<'info> {
     /// CHECK: contraint added to force using actual metaplex metadata program
     #[account(address = mpl_metadata_program, executable)]
@@ -32,8 +32,8 @@ pub struct CreateAsset<'info> {
         mint::authority = asset,
         seeds = [
             b"asset_mint".as_ref(),
-            hash_id.as_ref(), 
-            // initially the hash_id was used as a seed in the asset account and in the mint was used the asset key
+            off_chain_id.as_ref(), 
+            // initially the off_chain_id was used as a seed in the asset account and in the mint was used the asset key
             // makes more sense like this as explained below
         ],
         bump,
@@ -69,30 +69,27 @@ pub struct CreateAsset<'info> {
 
 pub fn handler<'info>(
     ctx: Context<CreateAsset>,
-    hash_id: String,
+    off_chain_id: String,
     app_name: String,
-    item_hash: String,
-    timestamp_funds_vault: u64,
+    refund_timespan: u64,
     token_price: u32,
     exemplars: i32,
-    quantity_per_exemplars: u32,
     token_name: String,
     token_symbol: String,
     token_uri: String,
 ) -> Result<()> {
     (*ctx.accounts.asset).app_name = app_name.clone();
-    (*ctx.accounts.asset).hash_id = hash_id.clone();
-    (*ctx.accounts.asset).item_hash = item_hash.clone();
+    (*ctx.accounts.asset).off_chain_id = off_chain_id.clone();
     (*ctx.accounts.asset).accepted_mint = ctx.accounts.accepted_mint.key();
     (*ctx.accounts.asset).asset_mint = ctx.accounts.asset_mint.key();
     (*ctx.accounts.asset).authority = ctx.accounts.authority.key();
-    (*ctx.accounts.asset).timestamp_funds_vault = timestamp_funds_vault;
+    (*ctx.accounts.asset).refund_timespan = refund_timespan;
     (*ctx.accounts.asset).price = token_price;
     (*ctx.accounts.asset).sold = 0;
     (*ctx.accounts.asset).used = 0;
+    (*ctx.accounts.asset).shared = 0;
     (*ctx.accounts.asset).refunded = 0;
     (*ctx.accounts.asset).exemplars = exemplars;
-    (*ctx.accounts.asset).quantity_per_exemplars = quantity_per_exemplars;
     (*ctx.accounts.asset).bump = *ctx.bumps.get("asset").unwrap();
     (*ctx.accounts.asset).mint_bump = *ctx.bumps.get("asset_mint").unwrap();
     (*ctx.accounts.asset).metadata_bump = *ctx.bumps.get("token_metadata").unwrap();

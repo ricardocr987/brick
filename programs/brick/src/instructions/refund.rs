@@ -23,7 +23,7 @@ pub struct Refund<'info> {
         mut,
         seeds = [
             b"asset_mint".as_ref(),
-            asset.hash_id.as_ref(),
+            asset.off_chain_id.as_ref(),
         ],
         bump = asset.mint_bump
     )]
@@ -45,7 +45,7 @@ pub struct Refund<'info> {
         constraint = authority.key() == payment.buyer @ ErrorCode::IncorrectPaymentAuthority,
         close = authority,
     )]
-    pub payment: Box<Account<'info, Payment>>,
+    pub payment: Account<'info, Payment>,
     #[account(
         mut,
         seeds = [
@@ -58,18 +58,18 @@ pub struct Refund<'info> {
     pub payment_vault: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
-        constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
+        constraint = buyer_token_vault.mint == asset_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
     )]
-    pub buyer_minted_token_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store Asset token
+    pub buyer_token_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store Asset token
 }
 
 pub fn handler<'info>(ctx: Context<Refund>) -> Result<()> {
     let clock = Clock::get()?;
-    if ctx.accounts.payment.payment_timestamp + ctx.accounts.asset.timestamp_funds_vault < clock.unix_timestamp as u64 {
+    if ctx.accounts.payment.refund_consumed_at < clock.unix_timestamp as u64 {
         return Err(ErrorCode::TimeForRefundHasConsumed.into());
     }
-    (*ctx.accounts.asset).sold -= ctx.accounts.payment.exemplars;
-    (*ctx.accounts.asset).refunded += ctx.accounts.payment.exemplars;
+    (*ctx.accounts.asset).sold -= 1;
+    (*ctx.accounts.asset).refunded += 1;
 
     let payment_timestamp = ctx.accounts.payment.payment_timestamp.to_le_bytes();
     let seeds = &[
@@ -90,7 +90,7 @@ pub fn handler<'info>(ctx: Context<Refund>) -> Result<()> {
             },
             &[&seeds[..]],
         ),
-        ctx.accounts.payment.total_amount,
+        ctx.accounts.payment.price.into(),
     )?;
 
     burn(
@@ -98,11 +98,11 @@ pub fn handler<'info>(ctx: Context<Refund>) -> Result<()> {
             ctx.accounts.token_program.to_account_info(),
             Burn {
                 authority: ctx.accounts.authority.to_account_info(),
-                from: ctx.accounts.buyer_minted_token_vault.to_account_info(),
+                from: ctx.accounts.buyer_token_vault.to_account_info(),
                 mint: ctx.accounts.asset_mint.to_account_info(),
             },
         ),
-        ctx.accounts.payment.exemplars.into(),
+        1,
     )?;
 
     close_account(

@@ -32,17 +32,17 @@ pub struct UseAsset<'info> {
         mut,
         seeds = [
             b"asset_mint".as_ref(),
-            asset.hash_id.as_ref(),
+            asset.off_chain_id.as_ref(),
         ],
         bump = asset.mint_bump,
-        constraint = buyer_minted_token_vault.mint == asset_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
+        constraint = buyer_token_vault.mint == asset_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
     )]
     pub asset_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = buyer_minted_token_vault.owner == authority.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
+        constraint = buyer_token_vault.owner == authority.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
     )]
-    pub buyer_minted_token_vault: Box<Account<'info, TokenAccount>>,
+    pub buyer_token_vault: Box<Account<'info, TokenAccount>>,
     /*#[account(
         mut,
         constraint = seller_vault.mint == asset.accepted_mint && seller_vault.owner == payment.seller
@@ -60,7 +60,7 @@ pub struct UseAsset<'info> {
         constraint = authority.key() == payment.buyer, // will be better checked in the handler
         close = authority,
     )]
-    pub payment: Box<Account<'info, Payment>>,
+    pub payment: Account<'info, Payment>,
     #[account(
         mut,
         seeds = [
@@ -73,28 +73,25 @@ pub struct UseAsset<'info> {
     pub payment_vault: Box<Account<'info, TokenAccount>>,*/
 }
 
-pub fn handler<'info>(ctx: Context<UseAsset>, exemplars: u32) -> Result<()> {
-    (*ctx.accounts.asset).used += exemplars;
+pub fn handler<'info>(ctx: Context<UseAsset>) -> Result<()> {
+    (*ctx.accounts.asset).used += 1;
 
     burn(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
             Burn {
                 authority: ctx.accounts.authority.to_account_info(),
-                from: ctx.accounts.buyer_minted_token_vault.to_account_info(),
+                from: ctx.accounts.buyer_token_vault.to_account_info(),
                 mint: ctx.accounts.asset_mint.to_account_info(),
             },
         ),
-        exemplars.into(),
+        1,
     )?;
 
     /*
 
-    it is a disaster to send the funds to the seller when the buyer burns the token, because it can 
-    happen that he has bought twice the same token (different txns), then there are two payments accounts 
-    with the necessary information to execute that transfer (simplified example). parameterizing the 
-    exemplars at the instruction level in this case is annoying, but I think it is better to keep that 
-    and make the seller wait the established time to withdraw the funds
+    we could make the seller receive directly the funds when the buyer burns the token,
+    but it is preferable that the seller sees the funds obtained and withdraw it by himself
 
     let payment_timestamp = ctx.accounts.payment.payment_timestamp.to_le_bytes();
     let seeds = &[
