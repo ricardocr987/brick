@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 
 #[account]
 pub struct Payment {
+    pub app_name: String, // to discriminate between different apps accounts, limited to 32 bytes
     pub asset_mint: Pubkey,
     pub seller: Pubkey,
     pub buyer: Pubkey, // this key is used also as seed
@@ -15,5 +16,5 @@ pub struct Payment {
 }
 
 impl Payment {
-    pub const SIZE: usize = 8 + 32 + 32 + 32 + 4 + 4 + 8 + 8 + 8 + 1 + 1;
+    pub const SIZE: usize = 8 + 32 + 32 + 32 + 32 + 4 + 4 + 8 + 8 + 8 + 1 + 1;
 }
