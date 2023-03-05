@@ -35,7 +35,7 @@ describe("brick", () => {
   const tokenUri = "https://aleph.im/876jkfbnewjdfjn";
   const noRefundTime = new anchor.BN(0);
 
-  it("Create an asset to mint unlimited editions and buy some", async () => {
+  it("Create an asset to mint unlimited editions and buy some, checks payment data is correct", async () => {
     const buyerBalance = 5;
     const sellerBalance = 2;
     const tokenPrice = 2;
@@ -151,6 +151,17 @@ describe("brick", () => {
       )
       .rpc()
       .catch(console.error);
+
+    const paymentAccount = await program.account.payment.fetch(paymentPublicKey);
+    assert.equal(paymentAccount.appName, appName);
+    assert.equal(paymentAccount.assetMint.toString(), assetMint.toString());
+    assert.equal(paymentAccount.seller.toString(), sellerKeypair.publicKey.toString());
+    assert.equal(paymentAccount.buyer.toString(), buyerKeypair.publicKey.toString());
+    assert.equal(paymentAccount.exemplars, exemplarsToBuy);
+    assert.equal(paymentAccount.price, tokenPrice);
+    assert.equal(Number(paymentAccount.totalAmount), exemplarsToBuy*tokenPrice);
+    assert.equal(Number(paymentAccount.paymentTimestamp), Number(buyTimestamp));
+    assert.equal(Number(paymentAccount.sellerReceiveFundsTimestamp), Number(buyTimestamp));
 
     // postTxInfo
     const assetAccount = await program.account.asset.fetch(assetPublicKey);
@@ -658,11 +669,12 @@ describe("brick", () => {
     }
   });
 
-  it("Create a transaction composed by buy and use instruction:", async () => {
+  it("Create a transaction composed by buy and use instruction, buyer cant refund after burn", async () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const tokenPrice = 2;
     const exemplars = 2;
+    const refundTime = new anchor.BN(50000)
     const quantityPerExemplars = 1;
     const {
       sellerKeypair,
@@ -683,7 +695,7 @@ describe("brick", () => {
         hashId,
         appName,
         hashId,
-        noRefundTime,
+        refundTime,
         tokenPrice,
         exemplars,
         quantityPerExemplars,
@@ -742,6 +754,28 @@ describe("brick", () => {
       ])
       .rpc()
       .catch(console.error);
+
+    // test if user can get refund after burn
+    try {
+      await program.methods
+        .refund()
+        .accounts({
+          authority: buyerKeypair.publicKey,
+          asset: assetPublicKey,
+          assetMint: assetMint,
+          receiverVault: buyerTransferVault,
+          payment: paymentPublicKey,
+          paymentVault: paymentVaultPublicKey,
+          buyerMintedTokenVault: buyerMintedTokenVault,
+        })
+        .signers(
+          buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]
+        )
+        .rpc();
+    } catch (e) {
+      if (e as AnchorError)
+        assert.isTrue(e.logs.includes('Program log: Error: insufficient funds'))
+    }
 
     // postTx info
     const assetAccount = await program.account.asset.fetch(assetPublicKey);
