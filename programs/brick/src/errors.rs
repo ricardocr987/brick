@@ -24,4 +24,6 @@ pub enum ErrorCode {
     IncorrectPaymentVault,
     #[msg("You are providing an incorrect token account")]
     IncorrectReceiverTokenAccount,
+    #[msg("You are providing a string that is too long")]
+    StringTooLong,
 }

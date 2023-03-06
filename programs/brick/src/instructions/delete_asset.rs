@@ -18,7 +18,7 @@ pub struct DeleteAsset<'info> {
         bump = asset.bump,
         constraint = asset.authority == authority.key() @ ErrorCode::IncorrectAssetAuthority
     )]
-    pub asset: Account<'info, Asset>,
+    pub asset: Box<Account<'info, Asset>>,
 }
 
 pub fn handler<'info>(ctx: Context<DeleteAsset>) -> Result<()> {

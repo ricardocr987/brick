@@ -17,7 +17,7 @@ pub struct EditAssetPrice<'info> {
         bump = asset.bump,
         constraint = asset.authority == authority.key() @ ErrorCode::IncorrectAssetAuthority
     )]
-    pub asset: Account<'info, Asset>,
+    pub asset: Box<Account<'info, Asset>>,
 }
 
 pub fn handler<'info>(ctx: Context<EditAssetPrice>, token_price: u32) -> Result<()> {

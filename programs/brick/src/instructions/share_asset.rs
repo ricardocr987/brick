@@ -28,7 +28,7 @@ pub struct ShareAsset<'info> {
         bump = asset.bump,
         constraint = asset.authority == authority.key() @ ErrorCode::IncorrectAssetAuthority
     )]
-    pub asset: Account<'info, Asset>,
+    pub asset: Box<Account<'info, Asset>>,
     #[account(
         mut,
         seeds = [

@@ -29,7 +29,7 @@ pub struct BuyAsset<'info> {
         ],
         bump = asset.bump
     )]
-    pub asset: Account<'info, Asset>,
+    pub asset: Box<Account<'info, Asset>>,
     #[account(
         mut,
         seeds = [

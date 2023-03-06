@@ -1,5 +1,6 @@
 use {
     crate::state::*,
+    crate::errors::ErrorCode,
     mpl_token_metadata::{
         ID as mpl_metadata_program,
         instruction::create_metadata_accounts_v3,
@@ -32,7 +33,7 @@ pub struct CreateAsset<'info> {
         mint::authority = asset,
         seeds = [
             b"asset_mint".as_ref(),
-            off_chain_id.as_ref(), 
+            off_chain_id.as_ref()
             // initially the off_chain_id was used as a seed in the asset account and in the mint was used the asset key
             // makes more sense like this as explained below
         ],
@@ -51,7 +52,7 @@ pub struct CreateAsset<'info> {
         ],
         bump,
     )]
-    pub asset: Account<'info, Asset>,
+    pub asset: Box<Account<'info, Asset>>,
     pub accepted_mint: Account<'info, Mint>,
     /// CHECK: this will be verified by token metadata program
     #[account(
@@ -70,6 +71,7 @@ pub struct CreateAsset<'info> {
 pub fn handler<'info>(
     ctx: Context<CreateAsset>,
     off_chain_id: String,
+    off_chain_metadata: String,
     app_name: String,
     refund_timespan: u64,
     token_price: u32,
@@ -78,8 +80,25 @@ pub fn handler<'info>(
     token_symbol: String,
     token_uri: String,
 ) -> Result<()> {
-    (*ctx.accounts.asset).app_name = app_name.clone();
-    (*ctx.accounts.asset).off_chain_id = off_chain_id.clone();
+    // The reason for creating a fixed-length byte array is to ensure that the resulting array always has a consistent size, 
+    // regardless of the length of the original string. If the app_name string is shorter than 32 characters, the remaining 
+    // bytes in the name_data array will be filled with whitespace characters. If the app_name string is longer than 32 
+    // characters, will throw an error. The unique string will be the id to be able to use it easily as a seed, it's at the end to
+    // no get problems
+    let metadata_bytes = off_chain_metadata.as_bytes();
+    let name_bytes = app_name.as_bytes();
+    if metadata_bytes.len() > 64 || name_bytes.len() > 32{
+        return Err(ErrorCode::StringTooLong.into());
+    }
+    let mut metadata_data = [b' '; 64];
+    metadata_data[..metadata_bytes.len()].copy_from_slice(metadata_bytes);
+    let mut name_data = [b' '; 32];
+    name_data[..name_bytes.len()].copy_from_slice(name_bytes);
+    // I need to do the string conversion to bytes here because I need to make it available in the account context, as the ids
+    // are used as seeds and first I need to proccess it first
+    (*ctx.accounts.asset).app_name = name_data;
+    (*ctx.accounts.asset).off_chain_id = off_chain_id;
+    (*ctx.accounts.asset).off_chain_metadata = metadata_data;
     (*ctx.accounts.asset).accepted_mint = ctx.accounts.accepted_mint.key();
     (*ctx.accounts.asset).asset_mint = ctx.accounts.asset_mint.key();
     (*ctx.accounts.asset).authority = ctx.accounts.authority.key();

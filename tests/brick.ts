@@ -34,6 +34,8 @@ describe("brick", () => {
   const tokenSymbol = "SOL";
   const tokenUri = "https://aleph.im/876jkfbnewjdfjn";
   const noRefundTime = new anchor.BN(0);
+  const noOffChainMetada = "";
+  const decoder = new TextDecoder();
 
   it("Create an asset to mint unlimited editions and buy some, checks payment data is correct", async () => {
     const buyerBalance = 5;
@@ -60,6 +62,7 @@ describe("brick", () => {
     await program.methods
       .createAsset(
         offChainId,
+        noOffChainMetada,
         appName,
         noRefundTime,
         tokenPrice,
@@ -83,7 +86,7 @@ describe("brick", () => {
       assetPublicKey
     );
     assert.isDefined(preBuyAssetAccount);
-    assert.equal(preBuyAssetAccount.appName, appName);
+    assert.equal(decoder.decode(new Uint8Array(preBuyAssetAccount.appName)).replace(/\s+/g, ""), appName);
     assert.equal(preBuyAssetAccount.offChainId, offChainId);
     assert.equal(
       preBuyAssetAccount.acceptedMint.toString(),
@@ -240,6 +243,7 @@ describe("brick", () => {
     await program.methods
       .createAsset(
         offChainId,
+        noOffChainMetada,
         appName,
         noRefundTime,
         tokenPrice,
@@ -392,6 +396,7 @@ describe("brick", () => {
     await program.methods
       .createAsset(
         offChainId,
+        noOffChainMetada,
         appName,
         noRefundTime,
         oldTokenPrice,
@@ -622,6 +627,7 @@ describe("brick", () => {
     await program.methods
       .createAsset(
         offChainId,
+        noOffChainMetada,
         appName,
         noRefundTime,
         tokenPrice,
@@ -764,6 +770,7 @@ describe("brick", () => {
     await program.methods
       .createAsset(
         offChainId,
+        noOffChainMetada,
         appName,
         refundTime,
         tokenPrice,
@@ -879,6 +886,7 @@ describe("brick", () => {
     await program.methods
       .createAsset(
         offChainId,
+        noOffChainMetada,
         appName,
         noRefundTime,
         tokenPrice,
@@ -902,7 +910,7 @@ describe("brick", () => {
       assetPublicKey
     );
     assert.isDefined(preShareAssetAccount);
-    assert.equal(preShareAssetAccount.appName, appName);
+    assert.equal(decoder.decode(new Uint8Array(preShareAssetAccount.appName)).replace(/\s+/g, ""), appName);
     assert.equal(preShareAssetAccount.offChainId, offChainId);
     assert.equal(
       preShareAssetAccount.acceptedMint.toString(),
@@ -1014,6 +1022,7 @@ describe("brick", () => {
     await program.methods
       .createAsset(
         offChainId,
+        noOffChainMetada,
         appName,
         refundTime,
         tokenPrice,
@@ -1176,6 +1185,7 @@ describe("brick", () => {
     await program.methods
       .createAsset(
         offChainId,
+        noOffChainMetada,
         appName,
         refundTime,
         tokenPrice,

@@ -15,6 +15,7 @@ pub mod brick {
     pub fn create_asset(
         ctx: Context<CreateAsset>,
         off_chain_id: String,
+        off_chain_metadata: String,
         app_name: String,
         refund_timespan: u64,
         token_price: u32,
@@ -24,8 +25,9 @@ pub mod brick {
         token_uri: String,
     ) -> Result<()> {
         create_asset::handler(
-            ctx, 
+            ctx,
             off_chain_id,
+            off_chain_metadata,
             app_name,
             refund_timespan,
             token_price,
