@@ -6,7 +6,7 @@ Use cases that might use this protocol:
 - SaaS
 - Inventory management & payment method for a physical store
 
-Brick is a payment protocol or sales contract that allows sellers to tokenize goods, services or assets by setting up a configuration or conditions of the sales contract, giving ot their token some functionalities. Here's how it works:
+Brick is a payment protocol or sales contract that allows sellers to tokenize goods, services or assets by setting up a configuration or conditions of the sales contract, giving to their token some functionalities. Here's how it works:
 
 1. Set the token you want to receive in the sale.
 2. Choose between an unlimited or limited sale. In the case of a limited sale, define how many sales you want to make.
@@ -18,3 +18,7 @@ As the seller, you will be responsible for giving the buyer access to the good, 
 
 Diagram to understand the logic of the Solana program:![Screenshot 2023-03-07 at 19 58 44](https://user-images.githubusercontent.com/32191898/223523825-38d1b792-008a-4bce-bf6d-d48db49d0dc9.png)
 
+TO-DO:
+- Indexer (Currently building)
+- Rust crate to make easier composability with other programs. Ideally, specific use cases should use this and do CPIs in their program.
+- Typescript library to make easier to build apps on top of it: Transaction/Instructions, fetching data and types definitions.
