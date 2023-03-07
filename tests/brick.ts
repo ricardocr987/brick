@@ -29,25 +29,30 @@ describe("brick", () => {
     .use(walletAdapterIdentity(provider.wallet))
     .use(bundlrStorage());
 
-  const appName = "Fishplace";
-  const tokenName = "Solana whales time series";
-  const tokenSymbol = "SOL";
+  const tokenName = "Bonking the bonked";
+  const tokenSymbol = "BONKY";
   const tokenUri = "https://aleph.im/876jkfbnewjdfjn";
   const noRefundTime = new anchor.BN(0);
   const noOffChainMetada = "";
-  const decoder = new TextDecoder();
+  const creatorBalance = 100000000;
+  const noFee = 0;
 
-  it("Create an asset to mint unlimited editions and buy some, checks payment data is correct", async () => {
-    const buyerBalance = 5;
-    const sellerBalance = 2;
-    const tokenPrice = 2;
+  it("Create an app (including a fee), an token to mint unlimited editions and buy some, checks payment data is correct, withdraw to check fee", async () => {
+    const buyerBalance = 500000000;
+    const sellerBalance = 200000000;
+    const tokenPrice = 50000;
     const exemplars = -1; // makes the token can be sold unlimited times
+    const fee = 250; // represents 5% fee for each sale
+    const appName = "Fishplace";
     const {
+      appPublicKey,
+      appCreatorKeypair,
+      creatorTransferVault,
       sellerKeypair,
       acceptedMintPublicKey,
-      assetPublicKey,
+      tokenPublicKey,
       offChainId,
-      assetMint,
+      tokenMint,
       buyerKeypair,
       buyerTokenVault,
       buyerTransferVault,
@@ -57,13 +62,42 @@ describe("brick", () => {
       secondBuyTimestamp,
       secondPaymentPublicKey,
       secondPaymentVaultPublicKey,
-    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
+      sellerTransferVault,
+    } = await initNewAccounts(
+      provider,
+      program,
+      appName,
+      buyerBalance,
+      sellerBalance,
+      creatorBalance
+    );
 
     await program.methods
-      .createAsset(
+      .createApp(appName, fee)
+      .accounts({
+        authority: appCreatorKeypair.publicKey,
+      })
+      .signers(
+        appCreatorKeypair instanceof (anchor.Wallet as any)
+          ? []
+          : [appCreatorKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    const appAccount = await program.account.app.fetch(appPublicKey);
+    assert.isDefined(appAccount);
+    assert.equal(appAccount.appName, appName);
+    assert.equal(
+      appAccount.authority.toString(),
+      appCreatorKeypair.publicKey.toString()
+    );
+    assert.equal(appAccount.feeBasisPoints, fee);
+
+    await program.methods
+      .createToken(
         offChainId,
         noOffChainMetada,
-        appName,
         noRefundTime,
         tokenPrice,
         exemplars,
@@ -74,6 +108,7 @@ describe("brick", () => {
       .accounts({
         metadataProgram: metadataProgramPublicKey,
         authority: sellerKeypair.publicKey,
+        app: appPublicKey,
         acceptedMint: acceptedMintPublicKey,
       })
       .signers(
@@ -82,42 +117,45 @@ describe("brick", () => {
       .rpc()
       .catch(console.error);
 
-    const preBuyAssetAccount = await program.account.asset.fetch(
-      assetPublicKey
+    const preBuyTokenAccount = await program.account.tokenMetadata.fetch(
+      tokenPublicKey
     );
-    assert.isDefined(preBuyAssetAccount);
-    assert.equal(decoder.decode(new Uint8Array(preBuyAssetAccount.appName)).replace(/\s+/g, ""), appName);
-    assert.equal(preBuyAssetAccount.offChainId, offChainId);
+    assert.isDefined(preBuyTokenAccount);
+    assert.equal(preBuyTokenAccount.app.toString(), appPublicKey.toString());
+    assert.equal(preBuyTokenAccount.offChainId, offChainId);
     assert.equal(
-      preBuyAssetAccount.acceptedMint.toString(),
+      preBuyTokenAccount.sellerConfig.acceptedMint.toString(),
       acceptedMintPublicKey.toString()
     );
-    assert.equal(preBuyAssetAccount.assetMint.toString(), assetMint.toString());
+    assert.equal(preBuyTokenAccount.tokenMint.toString(), tokenMint.toString());
     assert.equal(
-      preBuyAssetAccount.authority.toString(),
+      preBuyTokenAccount.authority.toString(),
       sellerKeypair.publicKey.toString()
     );
-    assert.equal(Number(preBuyAssetAccount.refundTimespan), Number(noRefundTime));
-    assert.equal(preBuyAssetAccount.price, tokenPrice);
-    assert.equal(preBuyAssetAccount.sold, 0);
-    assert.equal(preBuyAssetAccount.used, 0);
-    assert.equal(preBuyAssetAccount.shared, 0);
-    assert.equal(preBuyAssetAccount.refunded, 0);
-    assert.equal(preBuyAssetAccount.exemplars, exemplars);
-
-    const preBuyAssetMintAccount = await getMint(
-      provider.connection,
-      assetMint
+    assert.equal(
+      Number(preBuyTokenAccount.sellerConfig.refundTimespan),
+      Number(noRefundTime)
     );
-    assert.isDefined(preBuyAssetMintAccount);
-    assert.equal(preBuyAssetMintAccount.decimals, 0);
-    assert.equal(preBuyAssetMintAccount.supply, BigInt(0));
+    assert.equal(preBuyTokenAccount.sellerConfig.price, tokenPrice);
+    assert.equal(preBuyTokenAccount.transactionsInfo.sold, 0);
+    assert.equal(preBuyTokenAccount.transactionsInfo.used, 0);
+    assert.equal(preBuyTokenAccount.transactionsInfo.shared, 0);
+    assert.equal(preBuyTokenAccount.transactionsInfo.refunded, 0);
+    assert.equal(preBuyTokenAccount.sellerConfig.exemplars, exemplars);
 
-    const token = await metaplex.nfts().findByMint({ mintAddress: assetMint });
+    const preBuytokenMintAccount = await getMint(
+      provider.connection,
+      tokenMint
+    );
+    assert.isDefined(preBuytokenMintAccount);
+    assert.equal(preBuytokenMintAccount.decimals, 0);
+    assert.equal(preBuytokenMintAccount.supply, BigInt(0));
+
+    const token = await metaplex.nfts().findByMint({ mintAddress: tokenMint });
     assert.isDefined(token);
     if (isNft(token)) {
-      assert.equal(token.updateAuthorityAddress, assetPublicKey);
-      assert.equal(token.mint.address, assetMint);
+      assert.equal(token.updateAuthorityAddress, tokenPublicKey);
+      assert.equal(token.mint.address, tokenMint);
       assert.equal(token.mint.decimals, 0);
       assert.isTrue(token.mint.supply.basisPoints.eq(new anchor.BN(0)));
       assert.equal(token.json.name, tokenName);
@@ -132,17 +170,17 @@ describe("brick", () => {
           provider.wallet.publicKey,
           buyerTokenVault,
           buyerKeypair.publicKey,
-          assetMint
+          tokenMint
         )
       )
     );
 
     await program.methods
-      .buyAsset(buyTimestamp)
+      .buyToken(buyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         buyerTransferVault: buyerTransferVault,
         acceptedMint: acceptedMintPublicKey,
         payment: paymentPublicKey,
@@ -156,11 +194,11 @@ describe("brick", () => {
       .catch(console.error);
 
     await program.methods
-      .buyAsset(secondBuyTimestamp)
+      .buyToken(secondBuyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         buyerTransferVault: buyerTransferVault,
         acceptedMint: acceptedMintPublicKey,
         payment: secondPaymentPublicKey,
@@ -173,40 +211,67 @@ describe("brick", () => {
       .rpc()
       .catch(console.error);
 
-    const paymentAccount = await program.account.payment.fetch(paymentPublicKey);
-    assert.equal(paymentAccount.assetMint.toString(), assetMint.toString());
-    assert.equal(paymentAccount.seller.toString(), sellerKeypair.publicKey.toString());
-    assert.equal(paymentAccount.buyer.toString(), buyerKeypair.publicKey.toString());
+    const paymentAccount = await program.account.payment.fetch(
+      paymentPublicKey
+    );
+    assert.equal(paymentAccount.tokenMint.toString(), tokenMint.toString());
+    assert.equal(
+      paymentAccount.seller.toString(),
+      sellerKeypair.publicKey.toString()
+    );
+    assert.equal(
+      paymentAccount.buyer.toString(),
+      buyerKeypair.publicKey.toString()
+    );
     assert.equal(paymentAccount.price, tokenPrice);
     assert.equal(Number(paymentAccount.paymentTimestamp), Number(buyTimestamp));
     assert.equal(Number(paymentAccount.refundConsumedAt), Number(buyTimestamp));
 
-    const secondPaymentAccount = await program.account.payment.fetch(secondPaymentPublicKey);
-    assert.equal(secondPaymentAccount.assetMint.toString(), assetMint.toString());
-    assert.equal(secondPaymentAccount.seller.toString(), sellerKeypair.publicKey.toString());
-    assert.equal(secondPaymentAccount.buyer.toString(), buyerKeypair.publicKey.toString());
+    const secondPaymentAccount = await program.account.payment.fetch(
+      secondPaymentPublicKey
+    );
+    assert.equal(
+      secondPaymentAccount.tokenMint.toString(),
+      tokenMint.toString()
+    );
+    assert.equal(
+      secondPaymentAccount.seller.toString(),
+      sellerKeypair.publicKey.toString()
+    );
+    assert.equal(
+      secondPaymentAccount.buyer.toString(),
+      buyerKeypair.publicKey.toString()
+    );
     assert.equal(secondPaymentAccount.price, tokenPrice);
-    assert.equal(Number(secondPaymentAccount.paymentTimestamp), Number(secondBuyTimestamp));
-    assert.equal(Number(secondPaymentAccount.refundConsumedAt), Number(secondBuyTimestamp));
+    assert.equal(
+      Number(secondPaymentAccount.paymentTimestamp),
+      Number(secondBuyTimestamp)
+    );
+    assert.equal(
+      Number(secondPaymentAccount.refundConsumedAt),
+      Number(secondBuyTimestamp)
+    );
 
     // postTxInfo
-    const assetAccount = await program.account.asset.fetch(assetPublicKey);
-    assert.isDefined(assetAccount);
-    assert.equal(assetAccount.sold, 2);
+    const TokenAccount = await program.account.tokenMetadata.fetch(
+      tokenPublicKey
+    );
+    assert.isDefined(TokenAccount);
+    assert.equal(TokenAccount.transactionsInfo.sold, 2);
 
-    const assetMintAccount = await getMint(provider.connection, assetMint);
-    assert.equal(assetMintAccount.supply, BigInt(2));
+    const tokenMintAccount = await getMint(provider.connection, tokenMint);
+    assert.equal(tokenMintAccount.supply, BigInt(2));
 
     // check if the buyer is able to mint more tokens from the units bought
-    // impossible, the mint authority is the asset pda, only is possible calling
+    // impossible, the mint authority is the token pda, only is possible calling
     // the buy ix that first requires the transfer
     try {
       await provider.sendAndConfirm(
         new anchor.web3.Transaction().add(
           createMintToInstruction(
-            assetMint,
+            tokenMint,
             buyerKeypair.publicKey,
-            assetPublicKey,
+            tokenPublicKey,
             1,
             [buyerKeypair.publicKey]
           )
@@ -216,19 +281,81 @@ describe("brick", () => {
       if (e as AnchorError)
         assert.equal(e, "Error: Signature verification failed");
     }
+
+    await program.methods
+      .withdrawFunds()
+      .accounts({
+        authority: sellerKeypair.publicKey,
+        token: tokenPublicKey,
+        app: appPublicKey,
+        appCreatorVault: creatorTransferVault,
+        tokenMint: tokenMint,
+        receiverVault: sellerTransferVault,
+        payment: paymentPublicKey,
+        buyer: buyerKeypair.publicKey,
+        paymentVault: paymentVaultPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    await program.methods
+      .withdrawFunds()
+      .accounts({
+        authority: sellerKeypair.publicKey,
+        token: tokenPublicKey,
+        app: appPublicKey,
+        appCreatorVault: creatorTransferVault,
+        tokenMint: tokenMint,
+        receiverVault: sellerTransferVault,
+        payment: secondPaymentPublicKey,
+        buyer: buyerKeypair.publicKey,
+        paymentVault: secondPaymentVaultPublicKey,
+      })
+      .signers(
+        sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    const creatorTokenVaultAccount = await getAccount(
+      provider.connection,
+      creatorTransferVault
+    );
+    const totalAmount = 2 * tokenPrice;
+    const creatorFee = (totalAmount * fee) / 10000;
+    const expectedCreatorAmount = Math.trunc(creatorBalance + creatorFee);
+    assert.equal(
+      Number(creatorTokenVaultAccount.amount),
+      expectedCreatorAmount
+    );
+    const sellerTokenAccount = await getAccount(
+      provider.connection,
+      sellerTransferVault
+    );
+    const expectedSellerAmount = Math.trunc(
+      sellerBalance + totalAmount - creatorFee
+    );
+    assert.equal(Number(sellerTokenAccount.amount), expectedSellerAmount);
   });
 
-  it("Create an asset (limited to 2 buys), mint and metadata accounts and buy both, can't buy more", async () => {
+  it("Create an token (limited to 2 buys), mint and metadata accounts and buy both, can't buy more", async () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const tokenPrice = 2;
     const exemplars = 2;
+    const appName = "Fishnet";
     const {
+      appPublicKey,
+      appCreatorKeypair,
+      creatorTransferVault,
       sellerKeypair,
       acceptedMintPublicKey,
-      assetPublicKey,
+      tokenPublicKey,
       offChainId,
-      assetMint,
+      tokenMint,
       buyerKeypair,
       buyerTokenVault,
       buyerTransferVault,
@@ -238,13 +365,33 @@ describe("brick", () => {
       secondBuyTimestamp,
       secondPaymentPublicKey,
       secondPaymentVaultPublicKey,
-    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
+      sellerTransferVault,
+    } = await initNewAccounts(
+      provider,
+      program,
+      appName,
+      buyerBalance,
+      sellerBalance,
+      creatorBalance
+    );
 
     await program.methods
-      .createAsset(
+      .createApp(appName, noFee)
+      .accounts({
+        authority: appCreatorKeypair.publicKey,
+      })
+      .signers(
+        appCreatorKeypair instanceof (anchor.Wallet as any)
+          ? []
+          : [appCreatorKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    await program.methods
+      .createToken(
         offChainId,
         noOffChainMetada,
-        appName,
         noRefundTime,
         tokenPrice,
         exemplars,
@@ -255,6 +402,7 @@ describe("brick", () => {
       .accounts({
         metadataProgram: metadataProgramPublicKey,
         authority: sellerKeypair.publicKey,
+        app: appPublicKey,
         acceptedMint: acceptedMintPublicKey,
       })
       .signers(
@@ -270,17 +418,17 @@ describe("brick", () => {
           provider.wallet.publicKey,
           buyerTokenVault,
           buyerKeypair.publicKey,
-          assetMint
+          tokenMint
         )
       )
     );
 
     await program.methods
-      .buyAsset(buyTimestamp)
+      .buyToken(buyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         buyerTransferVault: buyerTransferVault,
         acceptedMint: acceptedMintPublicKey,
         payment: paymentPublicKey,
@@ -292,13 +440,13 @@ describe("brick", () => {
       )
       .rpc()
       .catch(console.error);
-    
+
     await program.methods
-      .buyAsset(secondBuyTimestamp)
+      .buyToken(secondBuyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         buyerTransferVault: buyerTransferVault,
         acceptedMint: acceptedMintPublicKey,
         payment: secondPaymentPublicKey,
@@ -312,21 +460,26 @@ describe("brick", () => {
       .catch(console.error);
 
     // postTxInfo
-    const assetAccount = await program.account.asset.fetch(assetPublicKey);
-    assert.isDefined(assetAccount);
-    assert.equal(assetAccount.exemplars - exemplars, 0);
+    const TokenAccount = await program.account.tokenMetadata.fetch(
+      tokenPublicKey
+    );
+    assert.isDefined(TokenAccount);
+    assert.equal(TokenAccount.sellerConfig.exemplars - exemplars, 0);
 
-    const assetMintAccount = await getMint(provider.connection, assetMint);
-    assert.equal(assetMintAccount.supply, BigInt(exemplars));
+    const tokenMintAccount = await getMint(provider.connection, tokenMint);
+    assert.equal(tokenMintAccount.supply, BigInt(exemplars));
 
     // check if the buyer is able to buy more even available = 0
-    const connection = new Connection('https://api.testnet.solana.com', 'processed');
+    const connection = new Connection(
+      "https://api.testnet.solana.com",
+      "processed"
+    );
     const slot = await connection.getSlot();
     const newBuyTimeStamp = new anchor.BN(await connection.getBlockTime(slot));
     const [newPaymentPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("payment", "utf-8"),
-        assetMint.toBuffer(),
+        tokenMint.toBuffer(),
         buyerKeypair.publicKey.toBuffer(),
         newBuyTimeStamp.toBuffer("le", 8),
       ],
@@ -339,11 +492,11 @@ describe("brick", () => {
       );
     try {
       await program.methods
-        .buyAsset(newBuyTimeStamp)
+        .buyToken(newBuyTimeStamp)
         .accounts({
           authority: buyerKeypair.publicKey,
-          asset: assetPublicKey,
-          assetMint: assetMint,
+          token: tokenPublicKey,
+          tokenMint: tokenMint,
           buyerTransferVault: buyerTransferVault,
           acceptedMint: acceptedMintPublicKey,
           payment: newPaymentPublicKey,
@@ -360,29 +513,53 @@ describe("brick", () => {
     }
   });
 
-  it("Create an asset and modify the price, an user pays the new price, seller withdraws funds and get the correct amount", async () => {
+  it("Create an token and modify the price, an user pays the new price, seller withdraws funds and get the correct amount", async () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const oldTokenPrice = 1;
     const newTokenPrice = 2;
     const exemplars = -1; // makes the token can be sold unlimited times
+    const appName = "Solana";
     const {
+      appPublicKey,
+      appCreatorKeypair,
+      creatorTransferVault,
       sellerKeypair,
       acceptedMintPublicKey,
-      assetPublicKey,
+      tokenPublicKey,
       offChainId,
-      assetMint,
+      tokenMint,
       buyerKeypair,
       buyerTokenVault,
       buyerTransferVault,
-      sellerTransferVault,
       buyTimestamp,
       paymentPublicKey,
       paymentVaultPublicKey,
       secondBuyTimestamp,
       secondPaymentPublicKey,
       secondPaymentVaultPublicKey,
-    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
+      sellerTransferVault,
+    } = await initNewAccounts(
+      provider,
+      program,
+      appName,
+      buyerBalance,
+      sellerBalance,
+      creatorBalance
+    );
+
+    await program.methods
+      .createApp(appName, noFee)
+      .accounts({
+        authority: appCreatorKeypair.publicKey,
+      })
+      .signers(
+        appCreatorKeypair instanceof (anchor.Wallet as any)
+          ? []
+          : [appCreatorKeypair]
+      )
+      .rpc()
+      .catch(console.error);
 
     const preTxBuyerFunds = await getAccount(
       provider.connection,
@@ -394,10 +571,9 @@ describe("brick", () => {
     );
 
     await program.methods
-      .createAsset(
+      .createToken(
         offChainId,
         noOffChainMetada,
-        appName,
         noRefundTime,
         oldTokenPrice,
         exemplars,
@@ -408,6 +584,7 @@ describe("brick", () => {
       .accounts({
         metadataProgram: metadataProgramPublicKey,
         authority: sellerKeypair.publicKey,
+        app: appPublicKey,
         acceptedMint: acceptedMintPublicKey,
       })
       .signers(
@@ -416,17 +593,16 @@ describe("brick", () => {
       .rpc()
       .catch(console.error);
 
-    const prePriceChangeAssetAccount = await program.account.asset.fetch(
-      assetPublicKey
-    );
-    assert.isDefined(prePriceChangeAssetAccount);
-    assert.equal(prePriceChangeAssetAccount.price, oldTokenPrice);
+    const prePriceChangeTokenAccount =
+      await program.account.tokenMetadata.fetch(tokenPublicKey);
+    assert.isDefined(prePriceChangeTokenAccount);
+    assert.equal(prePriceChangeTokenAccount.sellerConfig.price, oldTokenPrice);
 
     await program.methods
-      .editAssetPrice(newTokenPrice)
+      .editTokenPrice(newTokenPrice)
       .accounts({
         authority: sellerKeypair.publicKey,
-        asset: assetPublicKey,
+        token: tokenPublicKey,
       })
       .signers(
         sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
@@ -434,11 +610,10 @@ describe("brick", () => {
       .rpc()
       .catch(console.error);
 
-    const postPriceChangeAssetAccount = await program.account.asset.fetch(
-      assetPublicKey
-    );
-    assert.isDefined(postPriceChangeAssetAccount);
-    assert.equal(postPriceChangeAssetAccount.price, newTokenPrice);
+    const postPriceChangeTokenAccount =
+      await program.account.tokenMetadata.fetch(tokenPublicKey);
+    assert.isDefined(postPriceChangeTokenAccount);
+    assert.equal(postPriceChangeTokenAccount.sellerConfig.price, newTokenPrice);
 
     // initilizes buyer token account to store the token
     await provider.sendAndConfirm(
@@ -447,17 +622,17 @@ describe("brick", () => {
           provider.wallet.publicKey,
           buyerTokenVault,
           buyerKeypair.publicKey,
-          assetMint
+          tokenMint
         )
       )
     );
 
     await program.methods
-      .buyAsset(buyTimestamp)
+      .buyToken(buyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         buyerTransferVault: buyerTransferVault,
         acceptedMint: acceptedMintPublicKey,
         payment: paymentPublicKey,
@@ -471,11 +646,11 @@ describe("brick", () => {
       .catch(console.error);
 
     await program.methods
-      .buyAsset(secondBuyTimestamp)
+      .buyToken(secondBuyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         buyerTransferVault: buyerTransferVault,
         acceptedMint: acceptedMintPublicKey,
         payment: secondPaymentPublicKey,
@@ -491,7 +666,7 @@ describe("brick", () => {
     const paymentAccount = await program.account.payment.fetch(
       paymentPublicKey
     );
-    assert.isDefined(paymentAccount)
+    assert.isDefined(paymentAccount);
 
     // check if the buyer can withdraw the funds when the seller is the authority
     try {
@@ -499,8 +674,10 @@ describe("brick", () => {
         .withdrawFunds()
         .accounts({
           authority: buyerKeypair.publicKey,
-          asset: assetPublicKey,
-          assetMint: assetMint,
+          app: appPublicKey,
+          appCreatorVault: creatorTransferVault,
+          token: tokenPublicKey,
+          tokenMint: tokenMint,
           receiverVault: buyerTransferVault,
           payment: paymentPublicKey,
           buyer: buyerKeypair.publicKey,
@@ -519,8 +696,8 @@ describe("brick", () => {
         .refund()
         .accounts({
           authority: buyerKeypair.publicKey,
-          asset: assetPublicKey,
-          assetMint: assetMint,
+          token: tokenPublicKey,
+          tokenMint: tokenMint,
           receiverVault: buyerTransferVault,
           payment: paymentPublicKey,
           paymentVault: paymentVaultPublicKey,
@@ -539,8 +716,10 @@ describe("brick", () => {
       .withdrawFunds()
       .accounts({
         authority: sellerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        app: appPublicKey,
+        appCreatorVault: creatorTransferVault,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         receiverVault: sellerTransferVault,
         payment: paymentPublicKey,
         buyer: buyerKeypair.publicKey,
@@ -556,8 +735,10 @@ describe("brick", () => {
       .withdrawFunds()
       .accounts({
         authority: sellerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        app: appPublicKey,
+        appCreatorVault: creatorTransferVault,
+        tokenMint: tokenMint,
         receiverVault: sellerTransferVault,
         payment: secondPaymentPublicKey,
         buyer: buyerKeypair.publicKey,
@@ -577,8 +758,10 @@ describe("brick", () => {
       provider.connection,
       sellerTransferVault
     );
-    const mintedassetMint = await getMint(provider.connection, assetMint);
-    const assetAccount = await program.account.asset.fetch(assetPublicKey);
+    const mintedtokenMint = await getMint(provider.connection, tokenMint);
+    const TokenAccount = await program.account.tokenMetadata.fetch(
+      tokenPublicKey
+    );
     const buyerTokenVaultAccount = await getAccount(
       provider.connection,
       buyerTokenVault
@@ -589,46 +772,73 @@ describe("brick", () => {
     assert.isDefined(postTxBuyerFunds);
     assert.equal(
       postTxBuyerFunds.amount,
-      preTxBuyerFunds.amount - BigInt(assetAccount.price * 2)
+      preTxBuyerFunds.amount - BigInt(TokenAccount.sellerConfig.price * 2)
     );
     // Assert seller token account changed
     assert.isDefined(preTxSellerFunds);
     assert.isDefined(postTxSellerFunds);
     assert.equal(
       postTxSellerFunds.amount,
-      preTxSellerFunds.amount + BigInt(assetAccount.price * 2)
+      preTxSellerFunds.amount + BigInt(TokenAccount.sellerConfig.price * 2)
     );
     // Assert master edition account values changed
     assert.isDefined(buyerTokenVault);
     assert.equal(buyerTokenVaultAccount.amount, BigInt(2));
-    assert.isDefined(mintedassetMint);
-    assert.equal(mintedassetMint.supply, BigInt(2));
+    assert.isDefined(mintedtokenMint);
+    assert.equal(mintedtokenMint.supply, BigInt(2));
   });
 
-  it("Use asset test: seller try to close account with unused tokens, when all are used should allow to close the accounts", async () => {
+  it("Use token test: seller try to close account with unused tokens, when all are used should allow to close the accounts", async () => {
     const buyerBalance = 10;
     const sellerBalance = 2;
     const tokenPrice = 2;
     const exemplars = 1;
+    const appName = "Brick";
     const {
+      appPublicKey,
+      appCreatorKeypair,
+      creatorTransferVault,
       sellerKeypair,
       acceptedMintPublicKey,
-      assetPublicKey,
+      tokenPublicKey,
       offChainId,
-      assetMint,
+      tokenMint,
       buyerKeypair,
       buyerTokenVault,
       buyerTransferVault,
       buyTimestamp,
       paymentPublicKey,
       paymentVaultPublicKey,
-    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
+      secondBuyTimestamp,
+      secondPaymentPublicKey,
+      secondPaymentVaultPublicKey,
+      sellerTransferVault,
+    } = await initNewAccounts(
+      provider,
+      program,
+      appName,
+      buyerBalance,
+      sellerBalance,
+      creatorBalance
+    );
 
     await program.methods
-      .createAsset(
+      .createApp(appName, noFee)
+      .accounts({
+        authority: appCreatorKeypair.publicKey,
+      })
+      .signers(
+        appCreatorKeypair instanceof (anchor.Wallet as any)
+          ? []
+          : [appCreatorKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    await program.methods
+      .createToken(
         offChainId,
         noOffChainMetada,
-        appName,
         noRefundTime,
         tokenPrice,
         exemplars,
@@ -639,6 +849,7 @@ describe("brick", () => {
       .accounts({
         metadataProgram: metadataProgramPublicKey,
         authority: sellerKeypair.publicKey,
+        app: appPublicKey,
         acceptedMint: acceptedMintPublicKey,
       })
       .signers(
@@ -654,17 +865,17 @@ describe("brick", () => {
           provider.wallet.publicKey,
           buyerTokenVault,
           buyerKeypair.publicKey,
-          assetMint
+          tokenMint
         )
       )
     );
 
     await program.methods
-      .buyAsset(buyTimestamp)
+      .buyToken(buyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         buyerTransferVault: buyerTransferVault,
         acceptedMint: acceptedMintPublicKey,
         payment: paymentPublicKey,
@@ -680,10 +891,10 @@ describe("brick", () => {
     // seller tries to close accounts with unused tokens in the buyer wallet,
     try {
       await program.methods
-        .deleteAsset()
+        .deletetoken()
         .accounts({
           authority: sellerKeypair.publicKey,
-          asset: assetPublicKey,
+          token: tokenPublicKey,
         })
         .signers(
           sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
@@ -695,19 +906,19 @@ describe("brick", () => {
     }
 
     // preTx info
-    const preUseAssetAccount = await program.account.asset.fetch(
-      assetPublicKey
+    const preUseTokenAccount = await program.account.tokenMetadata.fetch(
+      tokenPublicKey
     );
-    assert.isDefined(preUseAssetAccount);
-    assert.equal(preUseAssetAccount.used, 0);
-    assert.equal(preUseAssetAccount.sold, exemplars);
+    assert.isDefined(preUseTokenAccount);
+    assert.equal(preUseTokenAccount.transactionsInfo.used, 0);
+    assert.equal(preUseTokenAccount.transactionsInfo.sold, exemplars);
 
     await program.methods
-      .useAsset()
+      .useToken()
       .accounts({
         authority: buyerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         buyerTokenVault: buyerTokenVault,
       })
       .signers(
@@ -717,20 +928,20 @@ describe("brick", () => {
       .catch(console.error);
 
     // postTx info
-    const postUseAssetAccount = await program.account.asset.fetch(
-      assetPublicKey
+    const postUseTokenAccount = await program.account.tokenMetadata.fetch(
+      tokenPublicKey
     );
-    assert.isDefined(postUseAssetAccount);
-    assert.equal(postUseAssetAccount.used, exemplars);
+    assert.isDefined(postUseTokenAccount);
+    assert.equal(postUseTokenAccount.transactionsInfo.used, exemplars);
 
-    const assetMintAccount = await getMint(provider.connection, assetMint);
-    assert.equal(assetMintAccount.supply, BigInt(0));
+    const tokenMintAccount = await getMint(provider.connection, tokenMint);
+    assert.equal(tokenMintAccount.supply, BigInt(0));
 
     await program.methods
-      .deleteAsset()
+      .deletetoken()
       .accounts({
         authority: sellerKeypair.publicKey,
-        asset: assetPublicKey,
+        token: tokenPublicKey,
       })
       .signers(
         sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
@@ -739,7 +950,7 @@ describe("brick", () => {
       .catch(console.error);
 
     try {
-      await program.account.asset.fetch(assetPublicKey);
+      await program.account.tokenMetadata.fetch(tokenPublicKey);
     } catch (e) {
       assert.isTrue(
         e.toString().includes("Account does not exist or has no data")
@@ -752,26 +963,53 @@ describe("brick", () => {
     const sellerBalance = 2;
     const tokenPrice = 2;
     const exemplars = 1;
-    const refundTime = new anchor.BN(50000)
+    const refundTime = new anchor.BN(50000);
+    const appName = "Aleph";
     const {
+      appPublicKey,
+      appCreatorKeypair,
+      creatorTransferVault,
       sellerKeypair,
       acceptedMintPublicKey,
-      assetPublicKey,
+      tokenPublicKey,
       offChainId,
-      assetMint,
+      tokenMint,
       buyerKeypair,
       buyerTokenVault,
       buyerTransferVault,
       buyTimestamp,
       paymentPublicKey,
       paymentVaultPublicKey,
-    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
+      secondBuyTimestamp,
+      secondPaymentPublicKey,
+      secondPaymentVaultPublicKey,
+      sellerTransferVault,
+    } = await initNewAccounts(
+      provider,
+      program,
+      appName,
+      buyerBalance,
+      sellerBalance,
+      creatorBalance
+    );
 
     await program.methods
-      .createAsset(
+      .createApp(appName, noFee)
+      .accounts({
+        authority: appCreatorKeypair.publicKey,
+      })
+      .signers(
+        appCreatorKeypair instanceof (anchor.Wallet as any)
+          ? []
+          : [appCreatorKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    await program.methods
+      .createToken(
         offChainId,
         noOffChainMetada,
-        appName,
         refundTime,
         tokenPrice,
         exemplars,
@@ -782,6 +1020,7 @@ describe("brick", () => {
       .accounts({
         metadataProgram: metadataProgramPublicKey,
         authority: sellerKeypair.publicKey,
+        app: appPublicKey,
         acceptedMint: acceptedMintPublicKey,
       })
       .signers(
@@ -797,17 +1036,17 @@ describe("brick", () => {
           provider.wallet.publicKey,
           buyerTokenVault,
           buyerKeypair.publicKey,
-          assetMint
+          tokenMint
         )
       )
     );
 
     await program.methods
-      .useAsset()
+      .useToken()
       .accounts({
         authority: buyerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         buyerTokenVault: buyerTokenVault,
       })
       .signers(
@@ -815,11 +1054,11 @@ describe("brick", () => {
       )
       .preInstructions([
         await program.methods
-          .buyAsset(buyTimestamp)
+          .buyToken(buyTimestamp)
           .accounts({
             authority: buyerKeypair.publicKey,
-            asset: assetPublicKey,
-            assetMint: assetMint,
+            token: tokenPublicKey,
+            tokenMint: tokenMint,
             buyerTransferVault: buyerTransferVault,
             acceptedMint: acceptedMintPublicKey,
             payment: paymentPublicKey,
@@ -837,8 +1076,8 @@ describe("brick", () => {
         .refund()
         .accounts({
           authority: buyerKeypair.publicKey,
-          asset: assetPublicKey,
-          assetMint: assetMint,
+          token: tokenPublicKey,
+          tokenMint: tokenMint,
           receiverVault: buyerTransferVault,
           payment: paymentPublicKey,
           paymentVault: paymentVaultPublicKey,
@@ -850,44 +1089,79 @@ describe("brick", () => {
         .rpc();
     } catch (e) {
       if (e as AnchorError)
-        assert.isTrue(e.logs.includes('Program log: Error: insufficient funds'))
+        assert.isTrue(
+          e.logs.includes("Program log: Error: insufficient funds")
+        );
     }
 
     // postTx info
-    const assetAccount = await program.account.asset.fetch(assetPublicKey);
-    assert.isDefined(assetAccount);
-    assert.equal(assetAccount.used, exemplars);
+    const TokenAccount = await program.account.tokenMetadata.fetch(
+      tokenPublicKey
+    );
+    assert.isDefined(TokenAccount);
+    assert.equal(TokenAccount.transactionsInfo.used, exemplars);
 
-    const assetMintAccount = await getMint(provider.connection, assetMint);
-    assert.equal(assetMintAccount.supply, BigInt(0));
+    const tokenMintAccount = await getMint(provider.connection, tokenMint);
+    assert.equal(tokenMintAccount.supply, BigInt(0));
 
     const paymentAccount = await program.account.payment.fetch(
       paymentPublicKey
     );
-    assert.isDefined(paymentAccount)
+    assert.isDefined(paymentAccount);
   });
 
-  it("Share asset ix, seller sends token to another wallet, only seller can do this", async () => {
+  it("Share token ix, seller sends token to another wallet, only seller can do this", async () => {
     const buyerBalance = 5;
     const sellerBalance = 2;
     const tokenPrice = 2;
     const exemplars = -1; // makes the token can be sold unlimited times
     const exemplarsToShare = 2;
+    const appName = "SOL";
     const {
+      appPublicKey,
+      appCreatorKeypair,
+      creatorTransferVault,
       sellerKeypair,
       acceptedMintPublicKey,
-      assetPublicKey,
+      tokenPublicKey,
       offChainId,
-      assetMint,
+      tokenMint,
       buyerKeypair,
       buyerTokenVault,
-    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
+      buyerTransferVault,
+      buyTimestamp,
+      paymentPublicKey,
+      paymentVaultPublicKey,
+      secondBuyTimestamp,
+      secondPaymentPublicKey,
+      secondPaymentVaultPublicKey,
+      sellerTransferVault,
+    } = await initNewAccounts(
+      provider,
+      program,
+      appName,
+      buyerBalance,
+      sellerBalance,
+      creatorBalance
+    );
 
     await program.methods
-      .createAsset(
+      .createApp(appName, noFee)
+      .accounts({
+        authority: appCreatorKeypair.publicKey,
+      })
+      .signers(
+        appCreatorKeypair instanceof (anchor.Wallet as any)
+          ? []
+          : [appCreatorKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    await program.methods
+      .createToken(
         offChainId,
         noOffChainMetada,
-        appName,
         noRefundTime,
         tokenPrice,
         exemplars,
@@ -898,6 +1172,7 @@ describe("brick", () => {
       .accounts({
         metadataProgram: metadataProgramPublicKey,
         authority: sellerKeypair.publicKey,
+        app: appPublicKey,
         acceptedMint: acceptedMintPublicKey,
       })
       .signers(
@@ -906,38 +1181,38 @@ describe("brick", () => {
       .rpc()
       .catch(console.error);
 
-    const preShareAssetAccount = await program.account.asset.fetch(
-      assetPublicKey
+    const preShareTokenAccount = await program.account.tokenMetadata.fetch(
+      tokenPublicKey
     );
-    assert.isDefined(preShareAssetAccount);
-    assert.equal(decoder.decode(new Uint8Array(preShareAssetAccount.appName)).replace(/\s+/g, ""), appName);
-    assert.equal(preShareAssetAccount.offChainId, offChainId);
+    assert.isDefined(preShareTokenAccount);
+    assert.equal(preShareTokenAccount.app.toString(), appPublicKey.toString());
+    assert.equal(preShareTokenAccount.offChainId, offChainId);
     assert.equal(
-      preShareAssetAccount.acceptedMint.toString(),
+      preShareTokenAccount.sellerConfig.acceptedMint.toString(),
       acceptedMintPublicKey.toString()
     );
     assert.equal(
-      preShareAssetAccount.authority.toString(),
+      preShareTokenAccount.authority.toString(),
       sellerKeypair.publicKey.toString()
     );
-    assert.equal(preShareAssetAccount.price, tokenPrice);
-    assert.equal(preShareAssetAccount.sold, 0);
-    assert.equal(preShareAssetAccount.used, 0);
-    assert.equal(preShareAssetAccount.exemplars, exemplars);
+    assert.equal(preShareTokenAccount.sellerConfig.price, tokenPrice);
+    assert.equal(preShareTokenAccount.transactionsInfo.sold, 0);
+    assert.equal(preShareTokenAccount.transactionsInfo.used, 0);
+    assert.equal(preShareTokenAccount.sellerConfig.exemplars, exemplars);
 
-    const preShareAssetMintAccount = await getMint(
+    const preSharetokenMintAccount = await getMint(
       provider.connection,
-      assetMint
+      tokenMint
     );
-    assert.isDefined(preShareAssetMintAccount);
-    assert.equal(preShareAssetMintAccount.decimals, 0);
-    assert.equal(preShareAssetMintAccount.supply, BigInt(0));
+    assert.isDefined(preSharetokenMintAccount);
+    assert.equal(preSharetokenMintAccount.decimals, 0);
+    assert.equal(preSharetokenMintAccount.supply, BigInt(0));
 
-    const token = await metaplex.nfts().findByMint({ mintAddress: assetMint });
+    const token = await metaplex.nfts().findByMint({ mintAddress: tokenMint });
     assert.isDefined(token);
     if (isNft(token)) {
-      assert.equal(token.updateAuthorityAddress, assetPublicKey);
-      assert.equal(token.mint.address, assetMint);
+      assert.equal(token.updateAuthorityAddress, tokenPublicKey);
+      assert.equal(token.mint.address, tokenMint);
       assert.equal(token.mint.decimals, 0);
       assert.isTrue(token.mint.supply.basisPoints.eq(new anchor.BN(0)));
       assert.equal(token.json.name, tokenName);
@@ -952,17 +1227,17 @@ describe("brick", () => {
           provider.wallet.publicKey,
           buyerTokenVault,
           buyerKeypair.publicKey,
-          assetMint
+          tokenMint
         )
       )
     );
 
     await program.methods
-      .shareAsset(exemplarsToShare)
+      .shareToken(exemplarsToShare)
       .accounts({
         authority: sellerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         receiverVault: buyerTokenVault,
       })
       .signers(
@@ -972,20 +1247,22 @@ describe("brick", () => {
       .catch(console.error);
 
     // postTxInfo
-    const assetAccount = await program.account.asset.fetch(assetPublicKey);
-    assert.isDefined(assetAccount);
-    assert.equal(assetAccount.shared, exemplarsToShare);
+    const TokenAccount = await program.account.tokenMetadata.fetch(
+      tokenPublicKey
+    );
+    assert.isDefined(TokenAccount);
+    assert.equal(TokenAccount.transactionsInfo.shared, exemplarsToShare);
 
-    const assetMintAccount = await getMint(provider.connection, assetMint);
-    assert.equal(assetMintAccount.supply, BigInt(exemplarsToShare));
+    const tokenMintAccount = await getMint(provider.connection, tokenMint);
+    assert.equal(tokenMintAccount.supply, BigInt(exemplarsToShare));
 
     try {
       await program.methods
-        .shareAsset(exemplarsToShare)
+        .shareToken(exemplarsToShare)
         .accounts({
           authority: buyerKeypair.publicKey,
-          asset: assetPublicKey,
-          assetMint: assetMint,
+          token: tokenPublicKey,
+          tokenMint: tokenMint,
           receiverVault: buyerTokenVault,
         })
         .signers(
@@ -994,7 +1271,7 @@ describe("brick", () => {
         .rpc();
     } catch (e) {
       if (e as AnchorError)
-        assert.equal(e.error.errorCode.code, "IncorrectAssetAuthority");
+        assert.equal(e.error.errorCode.code, "IncorrectTokenAuthority");
     }
   });
 
@@ -1003,27 +1280,53 @@ describe("brick", () => {
     const sellerBalance = 2;
     const tokenPrice = 2;
     const exemplars = 1;
+    const appName = "Backpack";
     const refundTime = new anchor.BN(60000);
     const {
+      appPublicKey,
+      appCreatorKeypair,
+      creatorTransferVault,
       sellerKeypair,
       acceptedMintPublicKey,
-      assetPublicKey,
+      tokenPublicKey,
       offChainId,
-      assetMint,
+      tokenMint,
       buyerKeypair,
       buyerTokenVault,
       buyerTransferVault,
       buyTimestamp,
       paymentPublicKey,
       paymentVaultPublicKey,
+      secondBuyTimestamp,
+      secondPaymentPublicKey,
+      secondPaymentVaultPublicKey,
       sellerTransferVault,
-    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
+    } = await initNewAccounts(
+      provider,
+      program,
+      appName,
+      buyerBalance,
+      sellerBalance,
+      creatorBalance
+    );
 
     await program.methods
-      .createAsset(
+      .createApp(appName, noFee)
+      .accounts({
+        authority: appCreatorKeypair.publicKey,
+      })
+      .signers(
+        appCreatorKeypair instanceof (anchor.Wallet as any)
+          ? []
+          : [appCreatorKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    await program.methods
+      .createToken(
         offChainId,
         noOffChainMetada,
-        appName,
         refundTime,
         tokenPrice,
         exemplars,
@@ -1034,6 +1337,7 @@ describe("brick", () => {
       .accounts({
         metadataProgram: metadataProgramPublicKey,
         authority: sellerKeypair.publicKey,
+        app: appPublicKey,
         acceptedMint: acceptedMintPublicKey,
       })
       .signers(
@@ -1049,7 +1353,7 @@ describe("brick", () => {
           provider.wallet.publicKey,
           buyerTokenVault,
           buyerKeypair.publicKey,
-          assetMint
+          tokenMint
         )
       )
     );
@@ -1060,11 +1364,11 @@ describe("brick", () => {
     );
 
     await program.methods
-      .buyAsset(buyTimestamp)
+      .buyToken(buyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         buyerTransferVault: buyerTransferVault,
         acceptedMint: acceptedMintPublicKey,
         payment: paymentPublicKey,
@@ -1081,15 +1385,12 @@ describe("brick", () => {
       provider.connection,
       paymentVaultPublicKey
     );
-    assert.isDefined(paymentVaultFunds)
+    assert.isDefined(paymentVaultFunds);
     const paymentAccount = await program.account.payment.fetch(
       paymentPublicKey
     );
-    assert.isDefined(paymentAccount)
-    assert.equal(
-      paymentVaultFunds.amount,
-      BigInt(tokenPrice * exemplars)
-    );
+    assert.isDefined(paymentAccount);
+    assert.equal(paymentVaultFunds.amount, BigInt(tokenPrice * exemplars));
 
     // check if the buyer can withdraw the funds when the seller is the authority
     try {
@@ -1097,8 +1398,10 @@ describe("brick", () => {
         .withdrawFunds()
         .accounts({
           authority: sellerKeypair.publicKey,
-          asset: assetPublicKey,
-          assetMint: assetMint,
+          app: appPublicKey,
+          appCreatorVault: creatorTransferVault,
+          token: tokenPublicKey,
+          tokenMint: tokenMint,
           receiverVault: sellerTransferVault,
           payment: paymentPublicKey,
           buyer: buyerKeypair.publicKey,
@@ -1117,8 +1420,8 @@ describe("brick", () => {
         .refund()
         .accounts({
           authority: sellerKeypair.publicKey,
-          asset: assetPublicKey,
-          assetMint: assetMint,
+          token: tokenPublicKey,
+          tokenMint: tokenMint,
           receiverVault: sellerTransferVault,
           payment: paymentPublicKey,
           paymentVault: paymentVaultPublicKey,
@@ -1137,8 +1440,8 @@ describe("brick", () => {
       .refund()
       .accounts({
         authority: buyerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         receiverVault: buyerTransferVault,
         payment: paymentPublicKey,
         paymentVault: paymentVaultPublicKey,
@@ -1167,26 +1470,52 @@ describe("brick", () => {
     const tokenPrice = 2;
     const exemplars = 1;
     const refundTime = new anchor.BN(3); // it is introduced in seconds
+    const appName = "OnePiece";
     const {
+      appPublicKey,
+      appCreatorKeypair,
+      creatorTransferVault,
       sellerKeypair,
       acceptedMintPublicKey,
-      assetPublicKey,
+      tokenPublicKey,
       offChainId,
-      assetMint,
+      tokenMint,
       buyerKeypair,
       buyerTokenVault,
       buyerTransferVault,
       buyTimestamp,
       paymentPublicKey,
       paymentVaultPublicKey,
+      secondBuyTimestamp,
+      secondPaymentPublicKey,
+      secondPaymentVaultPublicKey,
       sellerTransferVault,
-    } = await initNewAccounts(provider, program, buyerBalance, sellerBalance);
+    } = await initNewAccounts(
+      provider,
+      program,
+      appName,
+      buyerBalance,
+      sellerBalance,
+      creatorBalance
+    );
 
     await program.methods
-      .createAsset(
+      .createApp(appName, noFee)
+      .accounts({
+        authority: appCreatorKeypair.publicKey,
+      })
+      .signers(
+        appCreatorKeypair instanceof (anchor.Wallet as any)
+          ? []
+          : [appCreatorKeypair]
+      )
+      .rpc()
+      .catch(console.error);
+
+    await program.methods
+      .createToken(
         offChainId,
         noOffChainMetada,
-        appName,
         refundTime,
         tokenPrice,
         exemplars,
@@ -1197,6 +1526,7 @@ describe("brick", () => {
       .accounts({
         metadataProgram: metadataProgramPublicKey,
         authority: sellerKeypair.publicKey,
+        app: appPublicKey,
         acceptedMint: acceptedMintPublicKey,
       })
       .signers(
@@ -1212,7 +1542,7 @@ describe("brick", () => {
           provider.wallet.publicKey,
           buyerTokenVault,
           buyerKeypair.publicKey,
-          assetMint
+          tokenMint
         )
       )
     );
@@ -1223,11 +1553,11 @@ describe("brick", () => {
     );
 
     await program.methods
-      .buyAsset(buyTimestamp)
+      .buyToken(buyTimestamp)
       .accounts({
         authority: buyerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         buyerTransferVault: buyerTransferVault,
         acceptedMint: acceptedMintPublicKey,
         payment: paymentPublicKey,
@@ -1244,17 +1574,14 @@ describe("brick", () => {
       provider.connection,
       paymentVaultPublicKey
     );
-    assert.isDefined(paymentVaultFunds)
+    assert.isDefined(paymentVaultFunds);
     const paymentAccount = await program.account.payment.fetch(
       paymentPublicKey
     );
-    assert.isDefined(paymentAccount)
-    assert.equal(
-      paymentVaultFunds.amount,
-      BigInt(tokenPrice * exemplars)
-    );
+    assert.isDefined(paymentAccount);
+    assert.equal(paymentVaultFunds.amount, BigInt(tokenPrice * exemplars));
 
-    await delay(5000) // i've created 3s refund time, it waits 5s
+    await delay(5000); // i've created 3s refund time, it waits 5s
 
     // check if the buyer can withdraw the funds when the seller is the authority
     try {
@@ -1262,8 +1589,10 @@ describe("brick", () => {
         .withdrawFunds()
         .accounts({
           authority: buyerKeypair.publicKey,
-          asset: assetPublicKey,
-          assetMint: assetMint,
+          app: appPublicKey,
+          appCreatorVault: creatorTransferVault,
+          token: tokenPublicKey,
+          tokenMint: tokenMint,
           receiverVault: buyerTransferVault,
           payment: paymentPublicKey,
           buyer: buyerKeypair.publicKey,
@@ -1282,8 +1611,8 @@ describe("brick", () => {
         .refund()
         .accounts({
           authority: buyerKeypair.publicKey,
-          asset: assetPublicKey,
-          assetMint: assetMint,
+          token: tokenPublicKey,
+          tokenMint: tokenMint,
           receiverVault: buyerTransferVault,
           payment: paymentPublicKey,
           paymentVault: paymentVaultPublicKey,
@@ -1302,8 +1631,10 @@ describe("brick", () => {
       .withdrawFunds()
       .accounts({
         authority: sellerKeypair.publicKey,
-        asset: assetPublicKey,
-        assetMint: assetMint,
+        app: appPublicKey,
+        appCreatorVault: creatorTransferVault,
+        token: tokenPublicKey,
+        tokenMint: tokenMint,
         receiverVault: sellerTransferVault,
         payment: paymentPublicKey,
         buyer: buyerKeypair.publicKey,
@@ -1321,6 +1652,9 @@ describe("brick", () => {
 
     // Assert buyer token account haven't changed
     assert.isDefined(preTxSellerFunds);
-    assert.equal(preTxSellerFunds.amount + BigInt(exemplars * tokenPrice) , postTxSellerFunds.amount);
+    assert.equal(
+      preTxSellerFunds.amount + BigInt(exemplars * tokenPrice),
+      postTxSellerFunds.amount
+    );
   });
 });

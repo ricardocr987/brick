@@ -13,31 +13,31 @@ pub struct Refund<'info> {
     #[account(
         mut,
         seeds = [
-            b"asset".as_ref(),
-            asset.asset_mint.as_ref(),
+            b"token".as_ref(),
+            token.token_mint.as_ref(),
         ],
-        bump = asset.bump
+        bump = token.bumps.bump
     )]
-    pub asset: Box<Account<'info, Asset>>,
+    pub token: Box<Account<'info, TokenMetadata>>,
     #[account(
         mut,
         seeds = [
-            b"asset_mint".as_ref(),
-            asset.off_chain_id.as_ref(),
+            b"token_mint".as_ref(),
+            token.off_chain_id.as_ref(),
         ],
-        bump = asset.mint_bump
+        bump = token.bumps.mint_bump
     )]
-    pub asset_mint: Account<'info, Mint>,
+    pub token_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = receiver_vault.mint == asset.accepted_mint @ ErrorCode::IncorrectReceiverTokenAccount
+        constraint = receiver_vault.mint == token.seller_config.accepted_mint @ ErrorCode::IncorrectReceiverTokenAccount
     )]
     pub receiver_vault: Account<'info, TokenAccount>,
     #[account(
         mut,
         seeds = [
             b"payment".as_ref(),
-            asset_mint.key().as_ref(),
+            token_mint.key().as_ref(),
             payment.buyer.as_ref(),
             payment.payment_timestamp.to_le_bytes().as_ref(),
         ],
@@ -53,14 +53,14 @@ pub struct Refund<'info> {
             payment.key().as_ref(),
         ],
         bump = payment.bump_vault,
-        constraint = payment_vault.owner == payment.key() && payment_vault.mint == asset.accepted_mint.key() @ ErrorCode::IncorrectPaymentVault,
+        constraint = payment_vault.owner == payment.key() && payment_vault.mint == token.seller_config.accepted_mint.key() @ ErrorCode::IncorrectPaymentVault,
     )]
     pub payment_vault: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
-        constraint = buyer_token_vault.mint == asset_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
+        constraint = buyer_token_vault.mint == token_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
     )]
-    pub buyer_token_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store Asset token
+    pub buyer_token_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store the token
 }
 
 pub fn handler<'info>(ctx: Context<Refund>) -> Result<()> {
@@ -68,13 +68,13 @@ pub fn handler<'info>(ctx: Context<Refund>) -> Result<()> {
     if ctx.accounts.payment.refund_consumed_at < clock.unix_timestamp as u64 {
         return Err(ErrorCode::TimeForRefundHasConsumed.into());
     }
-    (*ctx.accounts.asset).sold -= 1;
-    (*ctx.accounts.asset).refunded += 1;
+    (*ctx.accounts.token).transactions_info.sold -= 1;
+    (*ctx.accounts.token).transactions_info.refunded += 1;
 
     let payment_timestamp = ctx.accounts.payment.payment_timestamp.to_le_bytes();
     let seeds = &[
         b"payment".as_ref(),
-        ctx.accounts.payment.asset_mint.as_ref(),
+        ctx.accounts.payment.token_mint.as_ref(),
         ctx.accounts.payment.buyer.as_ref(),
         payment_timestamp.as_ref(),
         &[ctx.accounts.payment.bump],
@@ -99,7 +99,7 @@ pub fn handler<'info>(ctx: Context<Refund>) -> Result<()> {
             Burn {
                 authority: ctx.accounts.authority.to_account_info(),
                 from: ctx.accounts.buyer_token_vault.to_account_info(),
-                mint: ctx.accounts.asset_mint.to_account_info(),
+                mint: ctx.accounts.token_mint.to_account_info(),
             },
         ),
         1,

@@ -12,7 +12,7 @@ use {
 };
 
 #[derive(Accounts)]
-pub struct UseAsset<'info> {
+pub struct UseToken<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -22,22 +22,22 @@ pub struct UseAsset<'info> {
     #[account(
         mut,
         seeds = [
-            b"asset".as_ref(),
-            asset.asset_mint.as_ref(),
+            b"token".as_ref(),
+            token.token_mint.as_ref(),
         ],
-        bump = asset.bump,
+        bump = token.bumps.bump,
     )]
-    pub asset: Box<Account<'info, Asset>>,
+    pub token: Box<Account<'info, TokenMetadata>>,
     #[account(
         mut,
         seeds = [
-            b"asset_mint".as_ref(),
-            asset.off_chain_id.as_ref(),
+            b"token_mint".as_ref(),
+            token.off_chain_id.as_ref(),
         ],
-        bump = asset.mint_bump,
-        constraint = buyer_token_vault.mint == asset_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
+        bump = token.bumps.mint_bump,
+        constraint = buyer_token_vault.mint == token_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
     )]
-    pub asset_mint: Account<'info, Mint>,
+    pub token_mint: Account<'info, Mint>,
     #[account(
         mut,
         constraint = buyer_token_vault.owner == authority.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
@@ -45,14 +45,14 @@ pub struct UseAsset<'info> {
     pub buyer_token_vault: Box<Account<'info, TokenAccount>>,
     /*#[account(
         mut,
-        constraint = seller_vault.mint == asset.accepted_mint && seller_vault.owner == payment.seller
+        constraint = seller_vault.mint == token.accepted_mint && seller_vault.owner == payment.seller
     )]
     pub seller_vault: Account<'info, TokenAccount>, // seller token account, receives the funds stored in the payment vault
     #[account(
         mut,
         seeds = [
             b"payment".as_ref(),
-            asset_mint.key().as_ref(),
+            token_mint.key().as_ref(),
             payment.buyer.as_ref(),
             payment.payment_timestamp.to_le_bytes().as_ref(),
         ],
@@ -68,13 +68,13 @@ pub struct UseAsset<'info> {
             payment.key().as_ref(),
         ],
         bump = payment.bump_vault,
-        constraint = payment_vault.owner == payment.key() && payment_vault.mint == asset.accepted_mint.key()
+        constraint = payment_vault.owner == payment.key() && payment_vault.mint == token.accepted_mint.key()
     )]
     pub payment_vault: Box<Account<'info, TokenAccount>>,*/
 }
 
-pub fn handler<'info>(ctx: Context<UseAsset>) -> Result<()> {
-    (*ctx.accounts.asset).used += 1;
+pub fn handler<'info>(ctx: Context<UseToken>) -> Result<()> {
+    (*ctx.accounts.token).transactions_info.used += 1;
 
     burn(
         CpiContext::new(
@@ -82,7 +82,7 @@ pub fn handler<'info>(ctx: Context<UseAsset>) -> Result<()> {
             Burn {
                 authority: ctx.accounts.authority.to_account_info(),
                 from: ctx.accounts.buyer_token_vault.to_account_info(),
-                mint: ctx.accounts.asset_mint.to_account_info(),
+                mint: ctx.accounts.token_mint.to_account_info(),
             },
         ),
         1,
@@ -96,7 +96,7 @@ pub fn handler<'info>(ctx: Context<UseAsset>) -> Result<()> {
     let payment_timestamp = ctx.accounts.payment.payment_timestamp.to_le_bytes();
     let seeds = &[
         b"payment".as_ref(),
-        ctx.accounts.payment.asset_mint.as_ref(),
+        ctx.accounts.payment.token_mint.as_ref(),
         ctx.accounts.payment.buyer.as_ref(),
         payment_timestamp.as_ref(),
         &[ctx.accounts.payment.bump],

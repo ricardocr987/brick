@@ -12,7 +12,7 @@ use {
 };
 
 #[derive(Accounts)]
-pub struct ShareAsset<'info> {
+pub struct ShareToken<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -22,36 +22,36 @@ pub struct ShareAsset<'info> {
     #[account(
         mut,
         seeds = [
-            b"asset".as_ref(),
-            asset.asset_mint.as_ref(),
+            b"token".as_ref(),
+            token.token_mint.as_ref(),
         ],
-        bump = asset.bump,
-        constraint = asset.authority == authority.key() @ ErrorCode::IncorrectAssetAuthority
+        bump = token.bumps.bump,
+        constraint = token.authority == authority.key() @ ErrorCode::IncorrectTokenAuthority
     )]
-    pub asset: Box<Account<'info, Asset>>,
+    pub token: Box<Account<'info, TokenMetadata>>,
     #[account(
         mut,
         seeds = [
-            b"asset_mint".as_ref(),
-            asset.off_chain_id.as_ref(),
+            b"token_mint".as_ref(),
+            token.off_chain_id.as_ref(),
         ],
-        bump = asset.mint_bump
+        bump = token.bumps.mint_bump
     )]
-    pub asset_mint: Account<'info, Mint>,
+    pub token_mint: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = receiver_vault.mint == asset_mint.key() @ ErrorCode::IncorrectReceiverTokenAccount
+        constraint = receiver_vault.mint == token_mint.key() @ ErrorCode::IncorrectReceiverTokenAccount
     )]
     pub receiver_vault: Box<Account<'info, TokenAccount>>,
 }
 
-pub fn handler<'info>(ctx: Context<ShareAsset>, exemplars: u32) -> Result<()> {
-    (*ctx.accounts.asset).shared += exemplars;
+pub fn handler<'info>(ctx: Context<ShareToken>, exemplars: u32) -> Result<()> {
+    (*ctx.accounts.token).transactions_info.shared += exemplars;
 
     let seeds = &[
-        b"asset".as_ref(),
-        ctx.accounts.asset.asset_mint.as_ref(),
-        &[ctx.accounts.asset.bump],
+        b"token".as_ref(),
+        ctx.accounts.token.token_mint.as_ref(),
+        &[ctx.accounts.token.bumps.bump],
     ];
 
     // call mintTo instruction
@@ -59,9 +59,9 @@ pub fn handler<'info>(ctx: Context<ShareAsset>, exemplars: u32) -> Result<()> {
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             MintTo {
-                mint: ctx.accounts.asset_mint.to_account_info(),
+                mint: ctx.accounts.token_mint.to_account_info(),
                 to: ctx.accounts.receiver_vault.to_account_info(),
-                authority: ctx.accounts.asset.to_account_info(),
+                authority: ctx.accounts.token.to_account_info(),
             },
             &[&seeds[..]],
         ),

@@ -13,36 +13,43 @@ import { Connection } from "@solana/web3.js";
 export async function initNewAccounts(
   provider: AnchorProvider,
   program: Program<Brick>,
+  appName: string,
   buyerBalance?: number,
-  sellerBalance?: number
+  sellerBalance?: number,
+  creatorBalance?: number
 ) {
+  const appCreatorKeypair = await createFundedWallet(provider, 20);
   const sellerKeypair = await createFundedWallet(provider, 20);
   const acceptedMintPublicKey = await createMint(provider);
-  const offChainIdAux: string = uuid();
-  const offChainId = offChainIdAux.substring(0, 32);
-  const [assetMint] = anchor.web3.PublicKey.findProgramAddressSync(
-    [
-      Buffer.from("asset_mint", "utf-8"), 
-      Buffer.from(offChainId, "utf-8"),
-    ],
+  const [appPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("app", "utf-8"), Buffer.from(appName, "utf-8")],
     program.programId
   );
-  const [assetPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("asset", "utf-8"), assetMint.toBuffer()],
+  const offChainIdAux: string = uuid();
+  const offChainId = offChainIdAux.substring(0, 32);
+  const [tokenMint] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("token_mint", "utf-8"), Buffer.from(offChainId, "utf-8")],
+    program.programId
+  );
+  const [tokenPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("token", "utf-8"), tokenMint.toBuffer()],
     program.programId
   );
   const buyerKeypair = await createFundedWallet(provider, 20);
   const buyerTokenVault = await getAssociatedTokenAddress(
-    assetMint,
+    tokenMint,
     buyerKeypair.publicKey
   );
-  const connection = new Connection('https://api.testnet.solana.com', 'processed');
+  const connection = new Connection(
+    "https://api.testnet.solana.com",
+    "processed"
+  );
   const slot = await connection.getSlot();
   const buyTimestamp = new anchor.BN(await connection.getBlockTime(slot));
   const [paymentPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
     [
       Buffer.from("payment", "utf-8"),
-      assetMint.toBuffer(),
+      tokenMint.toBuffer(),
       buyerKeypair.publicKey.toBuffer(),
       buyTimestamp.toBuffer("le", 8),
     ],
@@ -52,22 +59,29 @@ export async function initNewAccounts(
     [Buffer.from("payment_vault", "utf-8"), paymentPublicKey.toBuffer()],
     program.programId
   );
-  const secondBuyTimestamp = new anchor.BN(await connection.getBlockTime(slot) + 1);
+  const secondBuyTimestamp = new anchor.BN(
+    (await connection.getBlockTime(slot)) + 1
+  );
   const [secondPaymentPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
     [
       Buffer.from("payment", "utf-8"),
-      assetMint.toBuffer(),
+      tokenMint.toBuffer(),
       buyerKeypair.publicKey.toBuffer(),
       secondBuyTimestamp.toBuffer("le", 8),
     ],
     program.programId
   );
-  const [secondPaymentVaultPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("payment_vault", "utf-8"), secondPaymentPublicKey.toBuffer()],
-    program.programId
-  );
+  const [secondPaymentVaultPublicKey] =
+    anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("payment_vault", "utf-8"),
+        secondPaymentPublicKey.toBuffer(),
+      ],
+      program.programId
+    );
   let buyerTransferVault = undefined;
   let sellerTransferVault = undefined;
+  let creatorTransferVault = undefined;
   if (buyerBalance && sellerBalance) {
     buyerTransferVault = await createFundedAssociatedTokenAccount(
       provider,
@@ -82,13 +96,24 @@ export async function initNewAccounts(
       sellerKeypair
     );
   }
+  if (creatorBalance) {
+    creatorTransferVault = await createFundedAssociatedTokenAccount(
+      provider,
+      acceptedMintPublicKey,
+      creatorBalance,
+      appCreatorKeypair
+    );
+  }
 
   return {
+    appPublicKey,
+    appCreatorKeypair,
+    creatorTransferVault,
     sellerKeypair,
     acceptedMintPublicKey,
     offChainId,
-    assetPublicKey,
-    assetMint,
+    tokenPublicKey,
+    tokenMint,
     buyerKeypair,
     buyerTokenVault,
     buyerTransferVault,

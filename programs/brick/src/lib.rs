@@ -1,5 +1,6 @@
 pub mod state;
 pub mod errors;
+pub mod utils;
 mod instructions;
 use {
     anchor_lang::prelude::*,
@@ -12,11 +13,14 @@ declare_id!("84KfPcJAZhNSLMmSzgx3kDx3FfKfS3WK5u8FF8zks18S");
 pub mod brick {
     use super::*;
 
-    pub fn create_asset(
-        ctx: Context<CreateAsset>,
+    pub fn create_app(ctx: Context<CreateApp>, app_name: String, fee_basis_points: u16) -> Result<()> {
+        create_app::handler(ctx, app_name, fee_basis_points)
+    }
+
+    pub fn create_token(
+        ctx: Context<CreateToken>,
         off_chain_id: String,
         off_chain_metadata: String,
-        app_name: String,
         refund_timespan: u64,
         token_price: u32,
         exemplars: i32,
@@ -24,11 +28,10 @@ pub mod brick {
         token_symbol: String,
         token_uri: String,
     ) -> Result<()> {
-        create_asset::handler(
+        create_token::handler(
             ctx,
             off_chain_id,
             off_chain_metadata,
-            app_name,
             refund_timespan,
             token_price,
             exemplars,
@@ -38,16 +41,16 @@ pub mod brick {
         )
     }
 
-    pub fn edit_asset_price(ctx: Context<EditAssetPrice>, token_price: u32) -> Result<()> {
-        edit_asset_price::handler(ctx, token_price)
+    pub fn edit_token_price(ctx: Context<EditTokenPrice>, token_price: u32) -> Result<()> {
+        edit_token_price::handler(ctx, token_price)
     }
 
-    pub fn buy_asset(ctx: Context<BuyAsset>, timestamp: u64) -> Result<()> {
-        buy_asset::handler(ctx, timestamp)
+    pub fn buy_token(ctx: Context<BuyToken>, timestamp: u64) -> Result<()> {
+        buy_token::handler(ctx, timestamp)
     }
 
-    pub fn share_asset(ctx: Context<ShareAsset>, exemplars: u32) -> Result<()> {
-        share_asset::handler(ctx, exemplars)
+    pub fn share_token(ctx: Context<ShareToken>, exemplars: u32) -> Result<()> {
+        share_token::handler(ctx, exemplars)
     }
 
     pub fn withdraw_funds(ctx: Context<WithdrawFunds>) -> Result<()> {
@@ -58,11 +61,11 @@ pub mod brick {
         refund::handler(ctx)
     }
 
-    pub fn use_asset(ctx: Context<UseAsset>) -> Result<()> {
-        use_asset::handler(ctx)
+    pub fn use_token(ctx: Context<UseToken>) -> Result<()> {
+        use_token::handler(ctx)
     }
 
-    pub fn delete_asset(ctx: Context<DeleteAsset>) -> Result<()> {
-        delete_asset::handler(ctx)
+    pub fn deletetoken(ctx: Context<DeleteToken>) -> Result<()> {
+        delete_token::handler(ctx)
     }
 }

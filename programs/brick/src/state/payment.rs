@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 #[account]
 pub struct Payment {
-    pub asset_mint: Pubkey,
+    pub token_mint: Pubkey,
     pub seller: Pubkey,
     pub buyer: Pubkey, // this key is used also as seed
     pub price: u32,

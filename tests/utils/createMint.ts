@@ -7,9 +7,9 @@ import {
 
 export const createMint = async (
   provider: AnchorProvider,
-  decimals = 0
+  decimals = 5
 ): Promise<web3.PublicKey> => {
-  const assetMint = new web3.Keypair();
+  const tokenMint = new web3.Keypair();
   const lamportsForMint =
     await provider.connection.getMinimumBalanceForRentExemption(
       MintLayout.span
@@ -23,19 +23,19 @@ export const createMint = async (
           programId: TOKEN_PROGRAM_ID,
           space: MintLayout.span,
           fromPubkey: provider.wallet.publicKey,
-          newAccountPubkey: assetMint.publicKey,
+          newAccountPubkey: tokenMint.publicKey,
           lamports: lamportsForMint,
         })
       )
       .add(
         createInitializeMintInstruction(
-          assetMint.publicKey,
+          tokenMint.publicKey,
           decimals,
           provider.wallet.publicKey,
           provider.wallet.publicKey
         )
       ),
-    [assetMint]
+    [tokenMint]
   );
-  return assetMint.publicKey;
+  return tokenMint.publicKey;
 };
