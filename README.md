@@ -2,23 +2,24 @@ This project was started with the intention to monetize datasets and give permis
 
 Use cases that might use this protocol:
 - Tokenization of on-chain investment funds (this is what I want to explore, share access ix would be eliminated)
-- Token gating: dataset marketplace, article app, Event ticketing ...
-- SaaS
-- Inventory management & payment method for a physical store
+- Token gating: dataset marketplace, articles app, event ticketing app, ...
+- SaaS monetization
+- Inventory management & payment method for a store
 
-Brick is a payment protocol or sales contract that allows sellers to tokenize goods, services or assets by setting up a configuration or conditions of the sales contract, giving to their token some functionalities. Here's how it works:
+Brick is a payment protocol (or sales contract) that allows sellers to tokenize goods, services or assets by setting up a configuration (or conditions of the sales contract), giving to their token some functionalities. Here's how it works:
 
 1. Set the token you want to receive in the sale.
 2. Choose between an unlimited or limited sale. In the case of a limited sale, define how many sales you want to make.
 3. Set the time period during which the buyer can get a refund (it can be set to 0). If the buyer burns the token, they won't be able to access the funds, and the seller will have to wait for the set time to withdraw the funds.
+4. If you are building an app that wants to create a marketplace, you have the option to set fees to the permissionless market you are creating.
 
-4. If you are an app that wants to create a marketplace, you have the option to set fees to the market you are creating.
+Once the sale is completed, the seller is responsible for providing the buyer with access to the purchased good, service, or asset. This is achieved by calling the "use_asset" instruction, which burns the token purchased by the buyer, effectively giving them access to the item listed by the seller. This process is designed to be simple and secure, ensuring that both the seller and buyer can transact with confidence using Brick.
 
-As the seller, you will be responsible for giving the buyer access to the good, service, or asset. This is done by calling the "use_asset" instruction, in which the token purchased by the buyer is burned, giving them access to whatever the seller has listed. To facilitate this process, I am building an indexer so that any app that uses Brick in the background can easily access information about different events and accounts.
+To facilitate the use of Brick in different applications, an indexer is currently being developed. The indexer will provide easy access to information about various events and accounts associated with Brick transactions, enabling any app that uses Brick to retrieve data quickly and efficiently. With this feature, developers can build more complex applications that leverage Brick's functionality without worrying about the underlying blockchain technology.
 
 Diagram to understand the logic of the Solana program:![Screenshot 2023-03-07 at 19 58 44](https://user-images.githubusercontent.com/32191898/223523825-38d1b792-008a-4bce-bf6d-d48db49d0dc9.png)
 
 TO-DO:
 - Indexer (Currently building)
-- Rust crate to make easier composability with other programs. Ideally, specific use cases should use this and do CPIs in their program.
-- Typescript library to make easier to build apps on top of it: Transaction/Instructions, fetching data and types definitions.
+- Rust crate that facilitates composability with other programs, making it easy for specific use cases to integrate, using the core functionalities via CPI's
+- TypeScript library with transaction/instruction handling, data fetching, and type definitions to streamline app development and improve reliability
