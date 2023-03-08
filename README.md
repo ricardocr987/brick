@@ -1,4 +1,4 @@
-This project was started with the intention to monetize datasets and give permissions to the users by burning the token that represents that dataset [Check Fishnet](https://twitter.com/fishnet_tech) and was inspired by [this program](https://github.com/danmt/create-mint-and-metadata-on-chain).
+The purpose of starting this project was to monetize datasets and enable user permissions by utilizing tokenization, with the aim of creating a secure and transparent system for accessing valuable data while ensuring its integrity and authenticity through the use of token burning [Check Fishnet](https://twitter.com/fishnet_tech) and was inspired by [this program](https://github.com/danmt/create-mint-and-metadata-on-chain).
 
 Use cases that might use this protocol:
 - Tokenization of on-chain investment funds (this is what I want to explore, share access ix would be eliminated)
@@ -17,7 +17,7 @@ Once the sale is completed, the seller is responsible for providing the buyer wi
 
 To facilitate the use of Brick in different applications, an indexer is currently being developed. The indexer will provide easy access to information about various events and accounts associated with Brick transactions, enabling any app that uses Brick to retrieve data quickly and efficiently. With this feature, developers can build more complex applications that leverage Brick's functionality without worrying about the underlying blockchain technology.
 
-Diagram to understand the logic of the Solana program:![Screenshot 2023-03-07 at 19 58 44](https://user-images.githubusercontent.com/32191898/223523825-38d1b792-008a-4bce-bf6d-d48db49d0dc9.png)
+Diagram to understand the logic of the Solana program:<img width="900" alt="Screenshot 2023-03-08 at 10 36 31" src="https://user-images.githubusercontent.com/32191898/223676957-593666bd-7af1-4118-837d-766e01669f23.png">
 
 TO-DO:
 - Indexer (Currently building)
