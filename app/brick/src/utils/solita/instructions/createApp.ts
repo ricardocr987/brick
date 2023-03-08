@@ -10,76 +10,90 @@ import * as web3 from '@solana/web3.js'
 
 /**
  * @category Instructions
- * @category EditAssetPrice
+ * @category CreateApp
  * @category generated
  */
-export type EditAssetPriceInstructionArgs = {
-  tokenPrice: number
+export type CreateAppInstructionArgs = {
+  appName: string
+  feeBasisPoints: number
 }
 /**
  * @category Instructions
- * @category EditAssetPrice
+ * @category CreateApp
  * @category generated
  */
-export const editAssetPriceStruct = new beet.BeetArgsStruct<
-  EditAssetPriceInstructionArgs & {
+export const createAppStruct = new beet.FixableBeetArgsStruct<
+  CreateAppInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['tokenPrice', beet.u32],
+    ['appName', beet.utf8String],
+    ['feeBasisPoints', beet.u16],
   ],
-  'EditAssetPriceInstructionArgs',
+  'CreateAppInstructionArgs',
 )
 /**
- * Accounts required by the _editAssetPrice_ instruction
+ * Accounts required by the _createApp_ instruction
  *
  * @property [_writable_, **signer**] authority
- * @property [_writable_] asset
+ * @property [_writable_] app
  * @category Instructions
- * @category EditAssetPrice
+ * @category CreateApp
  * @category generated
  */
-export type EditAssetPriceInstructionAccounts = {
+export type CreateAppInstructionAccounts = {
+  systemProgram?: web3.PublicKey
+  rent?: web3.PublicKey
   authority: web3.PublicKey
-  asset: web3.PublicKey
+  app: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const editAssetPriceInstructionDiscriminator = [
-  36, 117, 167, 200, 35, 59, 247, 66,
+export const createAppInstructionDiscriminator = [
+  165, 212, 136, 33, 249, 223, 246, 249,
 ]
 
 /**
- * Creates a _EditAssetPrice_ instruction.
+ * Creates a _CreateApp_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category EditAssetPrice
+ * @category CreateApp
  * @category generated
  */
-export function createEditAssetPriceInstruction(
-  accounts: EditAssetPriceInstructionAccounts,
-  args: EditAssetPriceInstructionArgs,
+export function createCreateAppInstruction(
+  accounts: CreateAppInstructionAccounts,
+  args: CreateAppInstructionArgs,
   programId = new web3.PublicKey(
-    'FiShPdUdNuvhF9qETghrDWXiiAR8X2ujeGfGwSC84d4P',
+    'BrickarF2QeREBZsapbhgYPHJi5FYkJVnx7mZhxETCt5',
   ),
 ) {
-  const [data] = editAssetPriceStruct.serialize({
-    instructionDiscriminator: editAssetPriceInstructionDiscriminator,
+  const [data] = createAppStruct.serialize({
+    instructionDiscriminator: createAppInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [
+    {
+      pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
+      isWritable: false,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.rent ?? web3.SYSVAR_RENT_PUBKEY,
+      isWritable: false,
+      isSigner: false,
+    },
     {
       pubkey: accounts.authority,
       isWritable: true,
       isSigner: true,
     },
     {
-      pubkey: accounts.asset,
+      pubkey: accounts.app,
       isWritable: true,
       isSigner: false,
     },

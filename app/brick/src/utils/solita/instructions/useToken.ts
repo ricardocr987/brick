@@ -11,76 +11,59 @@ import * as web3 from '@solana/web3.js'
 
 /**
  * @category Instructions
- * @category ShareAsset
+ * @category UseToken
  * @category generated
  */
-export type ShareAssetInstructionArgs = {
-  exemplars: number
-}
-/**
- * @category Instructions
- * @category ShareAsset
- * @category generated
- */
-export const shareAssetStruct = new beet.BeetArgsStruct<
-  ShareAssetInstructionArgs & {
-    instructionDiscriminator: number[] /* size: 8 */
-  }
->(
-  [
-    ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['exemplars', beet.u32],
-  ],
-  'ShareAssetInstructionArgs',
+export const useTokenStruct = new beet.BeetArgsStruct<{
+  instructionDiscriminator: number[] /* size: 8 */
+}>(
+  [['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)]],
+  'UseTokenInstructionArgs',
 )
 /**
- * Accounts required by the _shareAsset_ instruction
+ * Accounts required by the _useToken_ instruction
  *
  * @property [] associatedTokenProgram
  * @property [_writable_, **signer**] authority
- * @property [_writable_] asset
- * @property [_writable_] assetMint
- * @property [_writable_] receiverMintedTokenVault
+ * @property [_writable_] token
+ * @property [_writable_] tokenMint
+ * @property [_writable_] buyerTokenVault
  * @category Instructions
- * @category ShareAsset
+ * @category UseToken
  * @category generated
  */
-export type ShareAssetInstructionAccounts = {
+export type UseTokenInstructionAccounts = {
   systemProgram?: web3.PublicKey
   tokenProgram?: web3.PublicKey
   associatedTokenProgram: web3.PublicKey
   rent?: web3.PublicKey
   authority: web3.PublicKey
-  asset: web3.PublicKey
-  assetMint: web3.PublicKey
-  receiverMintedTokenVault: web3.PublicKey
+  token: web3.PublicKey
+  tokenMint: web3.PublicKey
+  buyerTokenVault: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const shareAssetInstructionDiscriminator = [
-  135, 143, 194, 55, 137, 51, 31, 224,
+export const useTokenInstructionDiscriminator = [
+  149, 40, 199, 254, 83, 150, 43, 26,
 ]
 
 /**
- * Creates a _ShareAsset_ instruction.
+ * Creates a _UseToken_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
- * @param args to provide as instruction data to the program
- *
  * @category Instructions
- * @category ShareAsset
+ * @category UseToken
  * @category generated
  */
-export function createShareAssetInstruction(
-  accounts: ShareAssetInstructionAccounts,
-  args: ShareAssetInstructionArgs,
+export function createUseTokenInstruction(
+  accounts: UseTokenInstructionAccounts,
   programId = new web3.PublicKey(
-    'FiShPdUdNuvhF9qETghrDWXiiAR8X2ujeGfGwSC84d4P',
+    'BrickarF2QeREBZsapbhgYPHJi5FYkJVnx7mZhxETCt5',
   ),
 ) {
-  const [data] = shareAssetStruct.serialize({
-    instructionDiscriminator: shareAssetInstructionDiscriminator,
-    ...args,
+  const [data] = useTokenStruct.serialize({
+    instructionDiscriminator: useTokenInstructionDiscriminator,
   })
   const keys: web3.AccountMeta[] = [
     {
@@ -109,17 +92,17 @@ export function createShareAssetInstruction(
       isSigner: true,
     },
     {
-      pubkey: accounts.asset,
+      pubkey: accounts.token,
       isWritable: true,
       isSigner: false,
     },
     {
-      pubkey: accounts.assetMint,
+      pubkey: accounts.tokenMint,
       isWritable: true,
       isSigner: false,
     },
     {
-      pubkey: accounts.receiverMintedTokenVault,
+      pubkey: accounts.buyerTokenVault,
       isWritable: true,
       isSigner: false,
     },

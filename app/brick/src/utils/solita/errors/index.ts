@@ -12,13 +12,36 @@ const createErrorFromCodeLookup: Map<number, () => ErrorWithCode> = new Map()
 const createErrorFromNameLookup: Map<string, () => ErrorWithCode> = new Map()
 
 /**
+ * TimeForRefundHasConsumed: 'Refund time has consumed'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class TimeForRefundHasConsumedError extends Error {
+  readonly code: number = 0x1770
+  readonly name: string = 'TimeForRefundHasConsumed'
+  constructor() {
+    super('Refund time has consumed')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, TimeForRefundHasConsumedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1770, () => new TimeForRefundHasConsumedError())
+createErrorFromNameLookup.set(
+  'TimeForRefundHasConsumed',
+  () => new TimeForRefundHasConsumedError(),
+)
+
+/**
  * NotEnoughTokensAvailable: 'There are not enough tokens to buy'
  *
  * @category Errors
  * @category generated
  */
 export class NotEnoughTokensAvailableError extends Error {
-  readonly code: number = 0x1770
+  readonly code: number = 0x1771
   readonly name: string = 'NotEnoughTokensAvailable'
   constructor() {
     super('There are not enough tokens to buy')
@@ -28,150 +51,350 @@ export class NotEnoughTokensAvailableError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1770, () => new NotEnoughTokensAvailableError())
+createErrorFromCodeLookup.set(0x1771, () => new NotEnoughTokensAvailableError())
 createErrorFromNameLookup.set(
   'NotEnoughTokensAvailable',
   () => new NotEnoughTokensAvailableError(),
 )
 
 /**
- * WrongSellerMintProvided: 'You are providing a wrong seller mint'
+ * UsersStillHoldUnusedTokens: 'There are still users with a token available for use'
  *
  * @category Errors
  * @category generated
  */
-export class WrongSellerMintProvidedError extends Error {
-  readonly code: number = 0x1771
-  readonly name: string = 'WrongSellerMintProvided'
-  constructor() {
-    super('You are providing a wrong seller mint')
-    if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, WrongSellerMintProvidedError)
-    }
-  }
-}
-
-createErrorFromCodeLookup.set(0x1771, () => new WrongSellerMintProvidedError())
-createErrorFromNameLookup.set(
-  'WrongSellerMintProvided',
-  () => new WrongSellerMintProvidedError(),
-)
-
-/**
- * WrongBuyerMintProvided: 'You are providing a wrong buyer mint'
- *
- * @category Errors
- * @category generated
- */
-export class WrongBuyerMintProvidedError extends Error {
+export class UsersStillHoldUnusedTokensError extends Error {
   readonly code: number = 0x1772
-  readonly name: string = 'WrongBuyerMintProvided'
+  readonly name: string = 'UsersStillHoldUnusedTokens'
   constructor() {
-    super('You are providing a wrong buyer mint')
+    super('There are still users with a token available for use')
     if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, WrongBuyerMintProvidedError)
+      Error.captureStackTrace(this, UsersStillHoldUnusedTokensError)
     }
   }
 }
 
-createErrorFromCodeLookup.set(0x1772, () => new WrongBuyerMintProvidedError())
+createErrorFromCodeLookup.set(
+  0x1772,
+  () => new UsersStillHoldUnusedTokensError(),
+)
 createErrorFromNameLookup.set(
-  'WrongBuyerMintProvided',
-  () => new WrongBuyerMintProvidedError(),
+  'UsersStillHoldUnusedTokens',
+  () => new UsersStillHoldUnusedTokensError(),
 )
 
 /**
- * WrongTokenAccount: 'You are providing a wrong token account where the Asset token is stored'
+ * CannotWithdrawYet: 'You cannot withdraw these funds yet'
  *
  * @category Errors
  * @category generated
  */
-export class WrongTokenAccountError extends Error {
+export class CannotWithdrawYetError extends Error {
   readonly code: number = 0x1773
-  readonly name: string = 'WrongTokenAccount'
+  readonly name: string = 'CannotWithdrawYet'
+  constructor() {
+    super('You cannot withdraw these funds yet')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, CannotWithdrawYetError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1773, () => new CannotWithdrawYetError())
+createErrorFromNameLookup.set(
+  'CannotWithdrawYet',
+  () => new CannotWithdrawYetError(),
+)
+
+/**
+ * StringTooLong: 'You are providing a string that is too long'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class StringTooLongError extends Error {
+  readonly code: number = 0x1774
+  readonly name: string = 'StringTooLong'
+  constructor() {
+    super('You are providing a string that is too long')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, StringTooLongError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1774, () => new StringTooLongError())
+createErrorFromNameLookup.set('StringTooLong', () => new StringTooLongError())
+
+/**
+ * NumericalOverflow: 'Numerical Overflow happened'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class NumericalOverflowError extends Error {
+  readonly code: number = 0x1775
+  readonly name: string = 'NumericalOverflow'
+  constructor() {
+    super('Numerical Overflow happened')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, NumericalOverflowError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1775, () => new NumericalOverflowError())
+createErrorFromNameLookup.set(
+  'NumericalOverflow',
+  () => new NumericalOverflowError(),
+)
+
+/**
+ * IncorrectFee: 'You are setting a higher fee than allowed'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class IncorrectFeeError extends Error {
+  readonly code: number = 0x1776
+  readonly name: string = 'IncorrectFee'
+  constructor() {
+    super('You are setting a higher fee than allowed')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, IncorrectFeeError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1776, () => new IncorrectFeeError())
+createErrorFromNameLookup.set('IncorrectFee', () => new IncorrectFeeError())
+
+/**
+ * InconrrectAppAccount: 'You are providing a wrong app account'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InconrrectAppAccountError extends Error {
+  readonly code: number = 0x1777
+  readonly name: string = 'InconrrectAppAccount'
+  constructor() {
+    super('You are providing a wrong app account')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InconrrectAppAccountError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1777, () => new InconrrectAppAccountError())
+createErrorFromNameLookup.set(
+  'InconrrectAppAccount',
+  () => new InconrrectAppAccountError(),
+)
+
+/**
+ * InconrrectCreatorAccount: 'You are providing a wrong creator vault'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InconrrectCreatorAccountError extends Error {
+  readonly code: number = 0x1778
+  readonly name: string = 'InconrrectCreatorAccount'
+  constructor() {
+    super('You are providing a wrong creator vault')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InconrrectCreatorAccountError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1778, () => new InconrrectCreatorAccountError())
+createErrorFromNameLookup.set(
+  'InconrrectCreatorAccount',
+  () => new InconrrectCreatorAccountError(),
+)
+
+/**
+ * IncorrectPaymentToken: 'You are trying to pay a different mint than the one stated by the seller'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class IncorrectPaymentTokenError extends Error {
+  readonly code: number = 0x1779
+  readonly name: string = 'IncorrectPaymentToken'
   constructor() {
     super(
-      'You are providing a wrong token account where the Asset token is stored',
+      'You are trying to pay a different mint than the one stated by the seller',
     )
     if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, WrongTokenAccountError)
+      Error.captureStackTrace(this, IncorrectPaymentTokenError)
     }
   }
 }
 
-createErrorFromCodeLookup.set(0x1773, () => new WrongTokenAccountError())
+createErrorFromCodeLookup.set(0x1779, () => new IncorrectPaymentTokenError())
 createErrorFromNameLookup.set(
-  'WrongTokenAccount',
-  () => new WrongTokenAccountError(),
+  'IncorrectPaymentToken',
+  () => new IncorrectPaymentTokenError(),
 )
 
 /**
- * WrongTokenOwner: 'You are trying to use an token that you don't own'
+ * IncorrectBuyerTokenAccountOnTransfer: 'You are providing a wrong buyer token account, is where the funds come from to pay'
  *
  * @category Errors
  * @category generated
  */
-export class WrongTokenOwnerError extends Error {
-  readonly code: number = 0x1774
-  readonly name: string = 'WrongTokenOwner'
+export class IncorrectBuyerTokenAccountOnTransferError extends Error {
+  readonly code: number = 0x177a
+  readonly name: string = 'IncorrectBuyerTokenAccountOnTransfer'
   constructor() {
-    super("You are trying to use an token that you don't own")
+    super(
+      'You are providing a wrong buyer token account, is where the funds come from to pay',
+    )
     if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, WrongTokenOwnerError)
+      Error.captureStackTrace(this, IncorrectBuyerTokenAccountOnTransferError)
     }
   }
 }
 
-createErrorFromCodeLookup.set(0x1774, () => new WrongTokenOwnerError())
+createErrorFromCodeLookup.set(
+  0x177a,
+  () => new IncorrectBuyerTokenAccountOnTransferError(),
+)
 createErrorFromNameLookup.set(
-  'WrongTokenOwner',
-  () => new WrongTokenOwnerError(),
+  'IncorrectBuyerTokenAccountOnTransfer',
+  () => new IncorrectBuyerTokenAccountOnTransferError(),
 )
 
 /**
- * UnusedTokenExists: 'There are still users with the token available for use'
+ * IncorrectBuyerTokenAccountToStorePurchasedToken: 'You are providing a wrong buyer token account, is where the access token will be received'
  *
  * @category Errors
  * @category generated
  */
-export class UnusedTokenExistsError extends Error {
-  readonly code: number = 0x1775
-  readonly name: string = 'UnusedTokenExists'
+export class IncorrectBuyerTokenAccountToStorePurchasedTokenError extends Error {
+  readonly code: number = 0x177b
+  readonly name: string = 'IncorrectBuyerTokenAccountToStorePurchasedToken'
   constructor() {
-    super('There are still users with the token available for use')
+    super(
+      'You are providing a wrong buyer token account, is where the access token will be received',
+    )
     if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, UnusedTokenExistsError)
+      Error.captureStackTrace(
+        this,
+        IncorrectBuyerTokenAccountToStorePurchasedTokenError,
+      )
     }
   }
 }
 
-createErrorFromCodeLookup.set(0x1775, () => new UnusedTokenExistsError())
+createErrorFromCodeLookup.set(
+  0x177b,
+  () => new IncorrectBuyerTokenAccountToStorePurchasedTokenError(),
+)
 createErrorFromNameLookup.set(
-  'UnusedTokenExists',
-  () => new UnusedTokenExistsError(),
+  'IncorrectBuyerTokenAccountToStorePurchasedToken',
+  () => new IncorrectBuyerTokenAccountToStorePurchasedTokenError(),
 )
 
 /**
- * WrongAssetAuthority: 'You are not the owner of this asset'
+ * IncorrectTokenAuthority: 'You are not the owner of this token account'
  *
  * @category Errors
  * @category generated
  */
-export class WrongAssetAuthorityError extends Error {
-  readonly code: number = 0x1776
-  readonly name: string = 'WrongAssetAuthority'
+export class IncorrectTokenAuthorityError extends Error {
+  readonly code: number = 0x177c
+  readonly name: string = 'IncorrectTokenAuthority'
   constructor() {
-    super('You are not the owner of this asset')
+    super('You are not the owner of this token account')
     if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, WrongAssetAuthorityError)
+      Error.captureStackTrace(this, IncorrectTokenAuthorityError)
     }
   }
 }
 
-createErrorFromCodeLookup.set(0x1776, () => new WrongAssetAuthorityError())
+createErrorFromCodeLookup.set(0x177c, () => new IncorrectTokenAuthorityError())
 createErrorFromNameLookup.set(
-  'WrongAssetAuthority',
-  () => new WrongAssetAuthorityError(),
+  'IncorrectTokenAuthority',
+  () => new IncorrectTokenAuthorityError(),
+)
+
+/**
+ * IncorrectPaymentAuthority: 'You are not the owner of this payment account'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class IncorrectPaymentAuthorityError extends Error {
+  readonly code: number = 0x177d
+  readonly name: string = 'IncorrectPaymentAuthority'
+  constructor() {
+    super('You are not the owner of this payment account')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, IncorrectPaymentAuthorityError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(
+  0x177d,
+  () => new IncorrectPaymentAuthorityError(),
+)
+createErrorFromNameLookup.set(
+  'IncorrectPaymentAuthority',
+  () => new IncorrectPaymentAuthorityError(),
+)
+
+/**
+ * IncorrectPaymentVault: 'You are providing a worng payment vault'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class IncorrectPaymentVaultError extends Error {
+  readonly code: number = 0x177e
+  readonly name: string = 'IncorrectPaymentVault'
+  constructor() {
+    super('You are providing a worng payment vault')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, IncorrectPaymentVaultError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x177e, () => new IncorrectPaymentVaultError())
+createErrorFromNameLookup.set(
+  'IncorrectPaymentVault',
+  () => new IncorrectPaymentVaultError(),
+)
+
+/**
+ * IncorrectReceiverTokenAccount: 'You are providing an incorrect token account'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class IncorrectReceiverTokenAccountError extends Error {
+  readonly code: number = 0x177f
+  readonly name: string = 'IncorrectReceiverTokenAccount'
+  constructor() {
+    super('You are providing an incorrect token account')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, IncorrectReceiverTokenAccountError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(
+  0x177f,
+  () => new IncorrectReceiverTokenAccountError(),
+)
+createErrorFromNameLookup.set(
+  'IncorrectReceiverTokenAccount',
+  () => new IncorrectReceiverTokenAccountError(),
 )
 
 /**

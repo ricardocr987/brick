@@ -40,10 +40,6 @@ export const Navbar = ({ NavItems }: NavProps) => {
           }
         >
           <div className={styles.navbar_logo}>
-            <img
-              src="logo.svg"
-              height="50"
-              width="100" />
           </div>
 
           <div className={styles.mobile_icon} onClick={showSidebar}>

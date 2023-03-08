@@ -1,4 +1,4 @@
-import { ACCOUNTS_DATA_LAYOUT, AccountType, AssetArgs, TOKEN_ACCESS_PROGRAM_ID_PK } from "@/utils";
+import { ACCOUNTS_DATA_LAYOUT, AccountType, AssetArgs, BRICK_PROGRAM_ID_PK } from "@/utils";
 import { getAssetPubkey } from "@/utils/helpers";
 import { AccountLayout, RawAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
@@ -37,7 +37,7 @@ async function getTokens(publicKey: PublicKey, connection: Connection) {
 async function getTokensOnSale(publicKey: PublicKey, connection: Connection) {
     const tokensOnSale: AssetArgs[] = []
     const encodedTokensOnSale = await connection.getProgramAccounts(
-        TOKEN_ACCESS_PROGRAM_ID_PK,
+        BRICK_PROGRAM_ID_PK,
         {
             filters: [
                 {

@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js"
 
-export const TOKEN_ACCESS_PROGRAM_ID = 'FiShPdUdNuvhF9qETghrDWXiiAR8X2ujeGfGwSC84d4P'
-export const TOKEN_ACCESS_PROGRAM_ID_PK = new PublicKey(TOKEN_ACCESS_PROGRAM_ID)
+export const BRICK_PROGRAM_ID = 'BrickarF2QeREBZsapbhgYPHJi5FYkJVnx7mZhxETCt5'
+export const BRICK_PROGRAM_ID_PK = new PublicKey(BRICK_PROGRAM_ID)
 
 export const METADATA_PROGRAM_ID = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
 export const METADATA_PROGRAM_ID_PK = new PublicKey(METADATA_PROGRAM_ID)

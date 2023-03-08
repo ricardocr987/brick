@@ -11,79 +11,85 @@ import * as web3 from '@solana/web3.js'
 
 /**
  * @category Instructions
- * @category BuyAsset
+ * @category BuyToken
  * @category generated
  */
-export type BuyAssetInstructionArgs = {
-  exemplars: number
+export type BuyTokenInstructionArgs = {
+  timestamp: beet.bignum
 }
 /**
  * @category Instructions
- * @category BuyAsset
+ * @category BuyToken
  * @category generated
  */
-export const buyAssetStruct = new beet.BeetArgsStruct<
-  BuyAssetInstructionArgs & {
+export const buyTokenStruct = new beet.BeetArgsStruct<
+  BuyTokenInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['exemplars', beet.u32],
+    ['timestamp', beet.u64],
   ],
-  'BuyAssetInstructionArgs',
+  'BuyTokenInstructionArgs',
 )
 /**
- * Accounts required by the _buyAsset_ instruction
+ * Accounts required by the _buyToken_ instruction
  *
  * @property [] associatedTokenProgram
+ * @property [] clock
  * @property [_writable_, **signer**] authority
- * @property [_writable_] asset
+ * @property [_writable_] token
+ * @property [_writable_] tokenMint
  * @property [_writable_] buyerTransferVault
- * @property [_writable_] sellerTransferVault
- * @property [_writable_] assetMint
- * @property [_writable_] buyerMintedTokenVault
+ * @property [] acceptedMint
+ * @property [_writable_] payment
+ * @property [_writable_] paymentVault
+ * @property [_writable_] buyerTokenVault
  * @category Instructions
- * @category BuyAsset
+ * @category BuyToken
  * @category generated
  */
-export type BuyAssetInstructionAccounts = {
+export type BuyTokenInstructionAccounts = {
   systemProgram?: web3.PublicKey
   tokenProgram?: web3.PublicKey
   associatedTokenProgram: web3.PublicKey
   rent?: web3.PublicKey
+  clock: web3.PublicKey
   authority: web3.PublicKey
-  asset: web3.PublicKey
+  token: web3.PublicKey
+  tokenMint: web3.PublicKey
   buyerTransferVault: web3.PublicKey
-  sellerTransferVault: web3.PublicKey
-  assetMint: web3.PublicKey
-  buyerMintedTokenVault: web3.PublicKey
+  acceptedMint: web3.PublicKey
+  payment: web3.PublicKey
+  paymentVault: web3.PublicKey
+  buyerTokenVault: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const buyAssetInstructionDiscriminator = [
-  197, 37, 177, 1, 180, 23, 175, 98,
+export const buyTokenInstructionDiscriminator = [
+  138, 127, 14, 91, 38, 87, 115, 105,
 ]
 
 /**
- * Creates a _BuyAsset_ instruction.
+ * Creates a _BuyToken_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category BuyAsset
+ * @category BuyToken
  * @category generated
  */
-export function createBuyAssetInstruction(
-  accounts: BuyAssetInstructionAccounts,
-  args: BuyAssetInstructionArgs,
+export function createBuyTokenInstruction(
+  accounts: BuyTokenInstructionAccounts,
+  args: BuyTokenInstructionArgs,
   programId = new web3.PublicKey(
-    'FiShPdUdNuvhF9qETghrDWXiiAR8X2ujeGfGwSC84d4P',
+    'BrickarF2QeREBZsapbhgYPHJi5FYkJVnx7mZhxETCt5',
   ),
 ) {
-  const [data] = buyAssetStruct.serialize({
-    instructionDiscriminator: buyAssetInstructionDiscriminator,
+  const [data] = buyTokenStruct.serialize({
+    instructionDiscriminator: buyTokenInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [
@@ -108,12 +114,22 @@ export function createBuyAssetInstruction(
       isSigner: false,
     },
     {
+      pubkey: accounts.clock,
+      isWritable: false,
+      isSigner: false,
+    },
+    {
       pubkey: accounts.authority,
       isWritable: true,
       isSigner: true,
     },
     {
-      pubkey: accounts.asset,
+      pubkey: accounts.token,
+      isWritable: true,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.tokenMint,
       isWritable: true,
       isSigner: false,
     },
@@ -123,17 +139,22 @@ export function createBuyAssetInstruction(
       isSigner: false,
     },
     {
-      pubkey: accounts.sellerTransferVault,
+      pubkey: accounts.acceptedMint,
+      isWritable: false,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.payment,
       isWritable: true,
       isSigner: false,
     },
     {
-      pubkey: accounts.assetMint,
+      pubkey: accounts.paymentVault,
       isWritable: true,
       isSigner: false,
     },
     {
-      pubkey: accounts.buyerMintedTokenVault,
+      pubkey: accounts.buyerTokenVault,
       isWritable: true,
       isSigner: false,
     },

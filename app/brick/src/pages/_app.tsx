@@ -8,7 +8,7 @@ import { Footer } from '@/components/Footer';
 const NavItems = [
   { label: "Home", url: "/", key: 1 },
   { label: "Apps", url: "/apps", key: 2 },
-  { label: "Create", url: "/createToken", key: 3 },
+  { label: "Create", url: "/create", key: 3 },
   { label: "Give access", url: "/giveAccess", key: 4 },
   { label: "My tokens", url: "/tokens", key: 5 },
 ];

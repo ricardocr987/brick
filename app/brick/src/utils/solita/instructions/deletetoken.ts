@@ -10,50 +10,50 @@ import * as web3 from '@solana/web3.js'
 
 /**
  * @category Instructions
- * @category DeleteAsset
+ * @category Deletetoken
  * @category generated
  */
-export const deleteAssetStruct = new beet.BeetArgsStruct<{
+export const deletetokenStruct = new beet.BeetArgsStruct<{
   instructionDiscriminator: number[] /* size: 8 */
 }>(
   [['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)]],
-  'DeleteAssetInstructionArgs',
+  'DeletetokenInstructionArgs',
 )
 /**
- * Accounts required by the _deleteAsset_ instruction
+ * Accounts required by the _deletetoken_ instruction
  *
  * @property [_writable_, **signer**] authority
- * @property [_writable_] asset
+ * @property [_writable_] token
  * @category Instructions
- * @category DeleteAsset
+ * @category Deletetoken
  * @category generated
  */
-export type DeleteAssetInstructionAccounts = {
+export type DeletetokenInstructionAccounts = {
   authority: web3.PublicKey
-  asset: web3.PublicKey
+  token: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const deleteAssetInstructionDiscriminator = [
-  72, 146, 219, 26, 48, 171, 78, 33,
+export const deletetokenInstructionDiscriminator = [
+  144, 227, 92, 140, 137, 31, 96, 86,
 ]
 
 /**
- * Creates a _DeleteAsset_ instruction.
+ * Creates a _Deletetoken_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @category Instructions
- * @category DeleteAsset
+ * @category Deletetoken
  * @category generated
  */
-export function createDeleteAssetInstruction(
-  accounts: DeleteAssetInstructionAccounts,
+export function createDeletetokenInstruction(
+  accounts: DeletetokenInstructionAccounts,
   programId = new web3.PublicKey(
-    'FiShPdUdNuvhF9qETghrDWXiiAR8X2ujeGfGwSC84d4P',
+    'BrickarF2QeREBZsapbhgYPHJi5FYkJVnx7mZhxETCt5',
   ),
 ) {
-  const [data] = deleteAssetStruct.serialize({
-    instructionDiscriminator: deleteAssetInstructionDiscriminator,
+  const [data] = deletetokenStruct.serialize({
+    instructionDiscriminator: deletetokenInstructionDiscriminator,
   })
   const keys: web3.AccountMeta[] = [
     {
@@ -62,7 +62,7 @@ export function createDeleteAssetInstruction(
       isSigner: true,
     },
     {
-      pubkey: accounts.asset,
+      pubkey: accounts.token,
       isWritable: true,
       isSigner: false,
     },
