@@ -16,6 +16,10 @@ pub enum ErrorCode {
     NumericalOverflow,
     #[msg("You are setting a higher fee than allowed")]
     IncorrectFee,
+    #[msg("You are providing a wrong app account")]
+    InconrrectAppAccount,
+    #[msg("You are providing a wrong creator vault")]
+    InconrrectCreatorAccount,
     #[msg("You are trying to pay a different mint than the one stated by the seller")]
     IncorrectPaymentToken,
     #[msg("You are providing a wrong buyer token account, is where the funds come from to pay")]

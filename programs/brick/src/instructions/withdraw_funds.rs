@@ -19,12 +19,12 @@ pub struct WithdrawFunds<'info> {
             // makes more sense like this as explained below
         ],
         bump = app.bump,
-        constraint = app.key() == token.app
+        constraint = app.key() == token.app @ ErrorCode::InconrrectAppAccount
     )]
     pub app: Account<'info, App>,
     #[account(
         mut,
-        constraint = app_creator_vault.mint == token.seller_config.accepted_mint @ ErrorCode::IncorrectReceiverTokenAccount
+        constraint = app_creator_vault.mint == token.seller_config.accepted_mint @ ErrorCode::IncorrectReceiverTokenAccount, 
     )]
     pub app_creator_vault: Account<'info, TokenAccount>,
     #[account(
@@ -33,7 +33,8 @@ pub struct WithdrawFunds<'info> {
             b"token".as_ref(),
             token.token_mint.as_ref(),
         ],
-        bump = token.bumps.bump
+        bump = token.bumps.bump,
+        constraint = app_creator_vault.owner == app.authority @ ErrorCode::InconrrectCreatorAccount
     )]
     pub token: Box<Account<'info, TokenMetadata>>,
     #[account(

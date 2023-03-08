@@ -86,6 +86,7 @@ pub fn handler<'info>(ctx: Context<BuyToken>, timestamp: u64) -> Result<()> {
     }
 
     (*ctx.accounts.token).transactions_info.sold += 1;
+    (*ctx.accounts.payment).token_account = ctx.accounts.token.key();
     (*ctx.accounts.payment).token_mint = ctx.accounts.token_mint.key();
     (*ctx.accounts.payment).seller = ctx.accounts.token.authority;
     (*ctx.accounts.payment).buyer = ctx.accounts.authority.key();

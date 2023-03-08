@@ -13,7 +13,7 @@ pub fn get_withdraw_amounts(fee_basis_points: u16, price: u32) -> Result<(u64, u
     Ok((total_fee, seller_amount))
 }
 
-pub fn get_bytes_64_from_string(string: String) -> Result<[u8; 64], ErrorCode> {
+pub fn get_64_bytes_from_string(string: String) -> Result<[u8; 64], ErrorCode> {
     // The reason for creating a fixed-length byte array is to ensure that the resulting array always has a consistent size, 
     // regardless of the length of the original string. If the app_name string is shorter than 32 characters, the remaining 
     // bytes in the name_data array will be filled with whitespace characters. If the app_name string is longer than 32 
@@ -24,6 +24,17 @@ pub fn get_bytes_64_from_string(string: String) -> Result<[u8; 64], ErrorCode> {
         return Err(ErrorCode::StringTooLong.into());
     }
     let mut data = [b' '; 64];
+    data[..bytes.len()].copy_from_slice(bytes);
+
+    return Ok(data);
+}
+
+pub fn get_32_bytes_from_string(string: String) -> Result<[u8; 32], ErrorCode> {
+    let bytes = string.as_bytes();
+    if bytes.len() > 32 {
+        return Err(ErrorCode::StringTooLong.into());
+    }
+    let mut data = [b' '; 32];
     data[..bytes.len()].copy_from_slice(bytes);
 
     return Ok(data);

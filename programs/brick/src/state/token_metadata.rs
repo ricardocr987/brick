@@ -9,6 +9,8 @@ pub struct TokenMetadata {
     pub seller_config: SellerConfig,
     pub transactions_info: TransactionsInfo,
     pub bumps: Bumps,
+    pub off_chain_id2: [u8; 32], // 64 bytes id is what ipfs uses, becuase 32 bytes seeds limit 
+    // i'm forced to do this, splitting it in the client and joining it here
     pub off_chain_id: String, // limited to 32 bytes, used as seed of the mint account
 }
 
@@ -36,5 +38,5 @@ pub struct Bumps {
 }
 
 impl TokenMetadata {
-    pub const SIZE: usize = 8 + 64 + 32 + 32 + 32 + 32 + 8 + 4 + 4 + 4 + 4 + 4 + 4 + 1 + 1 + 1 + 36;
+    pub const SIZE: usize = 8 + 64 + 32 + 32 + 32 + 32 + 8 + 4 + 4 + 4 + 4 + 4 + 4 + 1 + 1 + 1 + 32 + 36;
 }

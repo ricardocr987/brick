@@ -2,7 +2,7 @@
 seeds = true
 
 [programs.localnet]
-brick = "84KfPcJAZhNSLMmSzgx3kDx3FfKfS3WK5u8FF8zks18S"
+brick = "BrickarF2QeREBZsapbhgYPHJi5FYkJVnx7mZhxETCt5"
 
 [registry]
 url = "https://api.apr.dev"

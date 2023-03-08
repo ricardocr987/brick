@@ -52,6 +52,7 @@ describe("brick", () => {
       acceptedMintPublicKey,
       tokenPublicKey,
       offChainId,
+      offChainId2,
       tokenMint,
       buyerKeypair,
       buyerTokenVault,
@@ -97,6 +98,7 @@ describe("brick", () => {
     await program.methods
       .createToken(
         offChainId,
+        offChainId2,
         noOffChainMetada,
         noRefundTime,
         tokenPrice,
@@ -355,6 +357,7 @@ describe("brick", () => {
       acceptedMintPublicKey,
       tokenPublicKey,
       offChainId,
+      offChainId2,
       tokenMint,
       buyerKeypair,
       buyerTokenVault,
@@ -391,6 +394,7 @@ describe("brick", () => {
     await program.methods
       .createToken(
         offChainId,
+        offChainId2,
         noOffChainMetada,
         noRefundTime,
         tokenPrice,
@@ -528,6 +532,7 @@ describe("brick", () => {
       acceptedMintPublicKey,
       tokenPublicKey,
       offChainId,
+      offChainId2,
       tokenMint,
       buyerKeypair,
       buyerTokenVault,
@@ -573,6 +578,7 @@ describe("brick", () => {
     await program.methods
       .createToken(
         offChainId,
+        offChainId2,
         noOffChainMetada,
         noRefundTime,
         oldTokenPrice,
@@ -802,6 +808,7 @@ describe("brick", () => {
       acceptedMintPublicKey,
       tokenPublicKey,
       offChainId,
+      offChainId2,
       tokenMint,
       buyerKeypair,
       buyerTokenVault,
@@ -838,6 +845,7 @@ describe("brick", () => {
     await program.methods
       .createToken(
         offChainId,
+        offChainId2,
         noOffChainMetada,
         noRefundTime,
         tokenPrice,
@@ -973,6 +981,7 @@ describe("brick", () => {
       acceptedMintPublicKey,
       tokenPublicKey,
       offChainId,
+      offChainId2,
       tokenMint,
       buyerKeypair,
       buyerTokenVault,
@@ -1009,6 +1018,7 @@ describe("brick", () => {
     await program.methods
       .createToken(
         offChainId,
+        offChainId2,
         noOffChainMetada,
         refundTime,
         tokenPrice,
@@ -1125,6 +1135,7 @@ describe("brick", () => {
       acceptedMintPublicKey,
       tokenPublicKey,
       offChainId,
+      offChainId2,
       tokenMint,
       buyerKeypair,
       buyerTokenVault,
@@ -1161,6 +1172,7 @@ describe("brick", () => {
     await program.methods
       .createToken(
         offChainId,
+        offChainId2,
         noOffChainMetada,
         noRefundTime,
         tokenPrice,
@@ -1290,6 +1302,7 @@ describe("brick", () => {
       acceptedMintPublicKey,
       tokenPublicKey,
       offChainId,
+      offChainId2,
       tokenMint,
       buyerKeypair,
       buyerTokenVault,
@@ -1326,6 +1339,7 @@ describe("brick", () => {
     await program.methods
       .createToken(
         offChainId,
+        offChainId2,
         noOffChainMetada,
         refundTime,
         tokenPrice,
@@ -1479,6 +1493,7 @@ describe("brick", () => {
       acceptedMintPublicKey,
       tokenPublicKey,
       offChainId,
+      offChainId2,
       tokenMint,
       buyerKeypair,
       buyerTokenVault,
@@ -1515,6 +1530,7 @@ describe("brick", () => {
     await program.methods
       .createToken(
         offChainId,
+        offChainId2,
         noOffChainMetada,
         refundTime,
         tokenPrice,

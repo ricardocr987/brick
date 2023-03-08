@@ -27,6 +27,7 @@ export async function initNewAccounts(
   );
   const offChainIdAux: string = uuid();
   const offChainId = offChainIdAux.substring(0, 32);
+  const offChainId2 = offChainId;
   const [tokenMint] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("token_mint", "utf-8"), Buffer.from(offChainId, "utf-8")],
     program.programId
@@ -112,6 +113,7 @@ export async function initNewAccounts(
     sellerKeypair,
     acceptedMintPublicKey,
     offChainId,
+    offChainId2,
     tokenPublicKey,
     tokenMint,
     buyerKeypair,

@@ -1,6 +1,6 @@
 use {
     crate::state::*,
-    crate::utils::get_bytes_64_from_string,
+    crate::utils::*,
     mpl_token_metadata::{
         ID as mpl_metadata_program,
         instruction::create_metadata_accounts_v3,
@@ -80,7 +80,9 @@ pub struct CreateToken<'info> {
 
 pub fn handler<'info>(
     ctx: Context<CreateToken>,
-    off_chain_id: String,
+    off_chain_id: String, // only this part is used as seed
+    off_chain_id2: String, // 64 bytes id is what ipfs uses, becuase 32 bytes seeds limit 
+    // i'm forced to do this, splitting it in the client and joining it here
     off_chain_metadata: String,
     refund_timespan: u64,
     token_price: u32,
@@ -89,8 +91,8 @@ pub fn handler<'info>(
     token_symbol: String,
     token_uri: String,
 ) -> Result<()> {
-    let metadata_data = get_bytes_64_from_string(off_chain_metadata)?;
-
+    let metadata_data = get_64_bytes_from_string(off_chain_metadata)?;
+    let id2_data = get_32_bytes_from_string(off_chain_id2)?;
     (*ctx.accounts.token).off_chain_metadata = metadata_data;
     (*ctx.accounts.token).app = ctx.accounts.app.key();
     (*ctx.accounts.token).token_mint = ctx.accounts.token_mint.key();
@@ -112,6 +114,7 @@ pub fn handler<'info>(
         mint_bump: *ctx.bumps.get("token_mint").unwrap(),
         metadata_bump: *ctx.bumps.get("token_metadata").unwrap(),
     };
+    (*ctx.accounts.token).off_chain_id2 = id2_data;
     (*ctx.accounts.token).off_chain_id = off_chain_id;
 
     let seeds = &[

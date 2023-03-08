@@ -7,7 +7,7 @@ use {
     instructions::*,
 };
 
-declare_id!("84KfPcJAZhNSLMmSzgx3kDx3FfKfS3WK5u8FF8zks18S");
+declare_id!("BrickarF2QeREBZsapbhgYPHJi5FYkJVnx7mZhxETCt5");
 
 #[program]
 pub mod brick {
@@ -20,6 +20,7 @@ pub mod brick {
     pub fn create_token(
         ctx: Context<CreateToken>,
         off_chain_id: String,
+        off_chain_id2: String,
         off_chain_metadata: String,
         refund_timespan: u64,
         token_price: u32,
@@ -31,6 +32,7 @@ pub mod brick {
         create_token::handler(
             ctx,
             off_chain_id,
+            off_chain_id2,
             off_chain_metadata,
             refund_timespan,
             token_price,
