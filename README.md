@@ -17,7 +17,8 @@ Once the sale is completed, the seller is responsible for providing the buyer wi
 
 To facilitate the use of Brick in different applications, an indexer is currently being developed. The indexer will provide easy access to information about various events and accounts associated with Brick transactions, enabling any app that uses Brick to retrieve data quickly and efficiently. With this feature, developers can build more complex applications that leverage Brick's functionality without worrying about the underlying blockchain technology.
 
-Diagram to understand the logic of the Solana program:<img width="900" alt="Screenshot 2023-03-08 at 10 36 31" src="https://user-images.githubusercontent.com/32191898/223676957-593666bd-7af1-4118-837d-766e01669f23.png">
+Diagram to understand the logic of the Solana program:
+<img width="900" alt="Screenshot 2023-03-08 at 10 41 57" src="https://user-images.githubusercontent.com/32191898/223678364-6ef7c6df-1add-4cdd-8058-3168379fada2.png">
 
 TO-DO:
 - Indexer (Currently building)
