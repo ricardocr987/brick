@@ -6,15 +6,15 @@ import { useState } from "react";
 
 export const CreateApp = ({ connection }: { connection: Connection }) => {
     const { sendTransaction, publicKey } = useWallet()
-    const [txnExplorer, setTxnExplorer] = useState(null)
+    const [txnExplorer, setTxnExplorer] = useState("")
     const [isSending, setIsSending] = useState(false)
     const [isSent, setIsSent] = useState(false)
     const [formCompleted, setFormCompleted] = useState(false)
-    const [appName, setAppName] = useState(null)
-    const [fee, setFee] = useState(null)
+    const [appName, setAppName] = useState("")
+    const [fee, setFee] = useState("")
 
     function handleInputChange() {
-        setFormCompleted(setAppName !== null && fee !== null)
+        setFormCompleted(appName !== "" && fee !== "")
     }
 
     const sendCreateAppTransaction = async () => {
@@ -71,7 +71,7 @@ export const CreateApp = ({ connection }: { connection: Connection }) => {
                 Basis fee points: <input className="input" value={fee} size={20} onChange={handleFee} onBlur={handleInputChange}/>
             </div>
             <div className="innerRow">
-                <button className="button" onClick={sendCreateAppTransaction} disabled={isSending && !formCompleted}>
+                <button className="button" onClick={sendCreateAppTransaction} disabled={isSending && !formCompleted || publicKey === null}>
                     Create App
                 </button>
             </div>

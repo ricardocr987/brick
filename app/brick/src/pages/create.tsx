@@ -5,7 +5,6 @@ import { loadEnvConfig } from '@next/env'
 
 const CreateTokenPage = () => {
     const connection = new Connection(process.env.RPC, "confirmed")    
-    console.log(process.env.RPC)
     return (
         <div className="create">
             <div className="row">

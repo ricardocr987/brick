@@ -13,22 +13,22 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
     const [isSending, setIsSending] = useState(false)
     const [isSent, setIsSent] = useState(false)
     const [formCompleted, setFormCompleted] = useState(false)
-    const [acceptedMint, setAcceptedMint] = useState(null)
-    const [offChainId, setOffChainId] = useState(null)
-    const [offChainMetadata, setOffChainmetadata] = useState(null)
-    const [appName, setAppName] = useState(null)
-    const [tokenPrice, setTokenPrice] = useState(null)
-    const [refundTime, setRefundTime] = useState(null)
-    const [exemplars, setExemplars] = useState(null)
-    const [tokenName, setTokenName] = useState(null)
-    const [tokenSymbol, setSymbol] = useState(null)
-    const [tokenUri, setTokenUri] = useState(null)
+    const [acceptedMint, setAcceptedMint] = useState(new PublicKey(mintFromSymbol['USDC']))
+    const [offChainId, setOffChainId] = useState("")
+    const [offChainMetadata, setOffChainmetadata] = useState("")
+    const [appName, setAppName] = useState("")
+    const [tokenPrice, setTokenPrice] = useState("")
+    const [refundTime, setRefundTime] = useState("")
+    const [exemplars, setExemplars] = useState("")
+    const [tokenName, setTokenName] = useState("")
+    const [tokenSymbol, setSymbol] = useState("")
+    const [tokenUri, setTokenUri] = useState("")
 
     function handleInputChange() {
         setFormCompleted(
-            acceptedMint !== null && offChainId !== null && offChainMetadata !== null && appName !== null 
-            && tokenPrice !== null && refundTime !== null && exemplars !== null && tokenName !== null
-            && tokenSymbol !== null && tokenUri !== null
+            offChainId !== "" && offChainMetadata !== "" && appName !== "" 
+            && tokenPrice !== "" && refundTime !== "" && exemplars !== "" 
+            && tokenName !== "" && tokenSymbol !== "" && tokenUri !== ""
         )
     }
 
@@ -44,7 +44,6 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
             const tokenAccount = getTokenPubkey(tokenMint)
             const appAccount = getAppPubkey(appName)
             const metadataAccount = getMetadataPubkey(tokenMint)
-            console.log(acceptedMint)
             const accounts: CreateTokenInstructionAccounts = {
                 metadataProgram: METADATA_PROGRAM_ID_PK,
                 systemProgram: SystemProgram.programId,
@@ -125,7 +124,7 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
                 </select>
             </div>
             <div className="innerRow">
-                <button className="button" onClick={sendCreateTokenTransaction} disabled={(isSending && !formCompleted)}>
+                <button className="button" onClick={sendCreateTokenTransaction} disabled={(isSending || !formCompleted || publicKey === null)}>
                     Create Token
                 </button>
             </div>
