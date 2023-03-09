@@ -24,7 +24,11 @@ export function getTokenMintPubkey(offChainId: string) {
 
 export function getMetadataPubkey(tokenMint: PublicKey) {
     return PublicKey.findProgramAddressSync(
-        [Buffer.from("metadata", "utf-8"), tokenMint.toBuffer()], 
+        [
+            Buffer.from("metadata", "utf-8"), 
+            METADATA_PROGRAM_ID_PK.toBuffer(),
+            tokenMint.toBuffer()
+        ], 
         METADATA_PROGRAM_ID_PK,
     )[0]
 }

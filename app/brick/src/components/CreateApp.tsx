@@ -55,23 +55,23 @@ export const CreateApp = () => {
 
     return (
         <div className="createApp">
-            <div className="row">
+            <div className="innerRow">
                 <h1>CREATE APP:</h1>
             </div>
-            <div className="row">
+            <div className="innerRow">
                 App name: <input className="input" value={appName} size={20} onChange={handleAppName} />
             </div>
-            <div className="row">
+            <div className="innerRow">
                 Basis fee points: <input className="input" value={fee} size={20} onChange={handleFee} />
             </div>
-            <div className="buttonContainer">
+            <div className="innerRow">
                 <button className="button" onClick={sendCreateAppTransaction} disabled={isSending}>
                     Create App
                 </button>
             </div>
-            <div>
-                { isSent && <h1> The transaction has processed! {txnExplorer} </h1> }
-                { isSending && <h1> Sending transaction </h1> }
+            <div className="innerRow">
+                { isSending && <h4 style={{ fontSize: '13px' }}> Sending transaction </h4> }
+                { isSent && <h4 style={{ fontSize: '13px' }}> The transaction has processed! <a href={txnExplorer} style={{ color: 'black' }}>View Transaction</a> </h4> }
             </div>
         </div>
     )

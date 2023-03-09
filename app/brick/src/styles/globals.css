@@ -31,24 +31,24 @@ a {
   flex-direction: column;
 }
 
-.column {
+.row {
   display: flex;
   min-width: 300px;
   padding: 20px;
   border-radius: 10px;
   border: 3px solid rgba(0, 0, 0, 1);
+  margin-top: 10px;
   color: white;
   background: radial-gradient(circle, rgba(222,151,0,1) 0%, rgba(214,88,0,1) 100%);
 }
 
-.buttonContainer {
+.button {
   margin-top: 10px;
-  display: flex;
+  margin-bottom: 10px;
+  margin-left: 30%;
+  margin-right: 30%;
   justify-content: center;
   align-items: center;
-}
-
-.button {
   border-radius: 10px;
   border: 2px solid rgba(0, 0, 0, 1);
   background: rgb(195,170,34);

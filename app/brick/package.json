@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@metaplex-foundation/beet-solana": "^0.4.0",
+    "@solana/spl-token": "^0.3.7",
     "@solana/wallet-adapter-react": "^0.15.30",
     "@solana/wallet-adapter-react-ui": "^0.9.29",
     "@solana/wallet-adapter-wallets": "^0.19.15",
