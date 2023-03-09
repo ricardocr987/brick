@@ -1,11 +1,11 @@
 import { getAppPubkey } from "@/utils/helpers";
 import { CreateAppInstructionAccounts, createCreateAppInstruction, CreateAppInstructionArgs } from "@/utils/solita/instructions";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { SystemProgram, SYSVAR_RENT_PUBKEY, Transaction } from "@solana/web3.js";
+import { Connection, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction } from "@solana/web3.js";
 import { useState } from "react";
 
 export const CreateApp = () => {
-    const { connection } = useConnection()
+    const connection = new Connection('https://solana-mainnet.g.alchemy.com/v2/UKpJEi5xcwjCtOXHye7pjfnkhbOUOqM2', "confirmed")    
     const { sendTransaction, publicKey } = useWallet()
     const [txnExplorer, setTxnExplorer] = useState(null)
     const [isSending, setIsSending] = useState(false)
@@ -33,6 +33,8 @@ export const CreateApp = () => {
         const transaction = new Transaction().add(
             createCreateAppInstruction(accounts, args)
         )
+        let blockhash = (await connection.getLatestBlockhash('finalized')).blockhash;
+        transaction.recentBlockhash = blockhash;
 
         const signature = await sendTransaction(
             transaction,
