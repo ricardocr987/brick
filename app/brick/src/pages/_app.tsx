@@ -4,6 +4,7 @@ import Head from 'next/head';
 import { ContextProvider } from '@/components/contexts/ContextProvider';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { Connection } from '@solana/web3.js';
 
 const NavItems = [
   { label: "Home", url: "/", key: 1 },
