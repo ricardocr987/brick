@@ -3,11 +3,13 @@ import { CreateToken } from "@/components/CreateToken";
 
 const CreateTokenPage = () => {
     return (
-        <div>
-            <h1>CREATE APP:</h1>
-            <CreateApp/>
-            <h1>CREATE TOKEN:</h1>
-            <CreateToken/>
+        <div className="create">
+            <div className="column left">
+                <CreateApp/>
+            </div>
+            <div className="column right">
+                <CreateToken/>
+            </div>
         </div>
     )
 };

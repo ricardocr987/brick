@@ -29,7 +29,7 @@ export const CreateToken = () => {
         setIsSending(true)
 
         const offChainId1 = offChainId.slice(0, 32)
-        const offChainId2 = offChainId.slice(3, 64)
+        const offChainId2 = offChainId.slice(32, 64)
         const tokenMint = getTokenMintPubkey(offChainId1)
         const tokenAccount = getTokenPubkey(tokenMint)
         const metadataAccount = getMetadataPubkey(tokenMint)
@@ -107,23 +107,45 @@ export const CreateToken = () => {
 
     return (
         <div className="createToken">
-            App name: <input value={appName} size={30} onChange={handleAppName} />
-            Off chain id: <input value={offChainId} size={30} onChange={handleId} />
-            Refund timespan: <input value={refundTime} size={30} onChange={handleRefundTime} />
-            Price: <input value={tokenPrice} size={30} onChange={handleTokenPrice} />
-            Exemplars: <input value={exemplars} size={30} onChange={handleExemplars} />
-            Quantity per exemplars: <input value={quantityPerExemplars} size={30} onChange={handleQuantityPerExemplars} />
-            Token name: <input value={tokenName} size={30} onChange={handleTokenName} />
-            Token symbol: <input value={tokenSymbol} size={30} onChange={handleTokenSymbol} />
-            Token uri: <input value={tokenUri} size={30} onChange={handleTokenUri} />
-            <label> Select token to be paid </label>  
-            <select onChange={handleAcceptedMint}>  
-                <option value = "USDC"> USDC </option>  
-                <option value = "SOL"> SOL </option>  
-            </select>
-            <button onClick={sendCreateTokenTransaction} disabled={isSending}>
-                Create Token
-            </button>
+            <div className="row">
+                <h1>CREATE TOKEN:</h1>
+            </div>
+            <div className="row">
+                App name: <input value={appName} size={20} onChange={handleAppName} />
+            </div>
+            <div className="row">
+                Off chain id: <input value={offChainId} size={20} onChange={handleId} />
+            </div>
+            <div className="row">
+                Refund timespan: <input value={refundTime} size={20} onChange={handleRefundTime} />
+            </div>
+            <div className="row">
+                Price: <input value={tokenPrice} size={20} onChange={handleTokenPrice} />
+            </div>
+            <div className="row">
+                Exemplars: <input value={exemplars} size={20} onChange={handleExemplars} />
+            </div>
+            <div className="row">
+                Token name: <input value={tokenName} size={20} onChange={handleTokenName} />
+            </div>
+            <div className="row">
+                Token symbol: <input value={tokenSymbol} size={20} onChange={handleTokenSymbol} />
+            </div>
+            <div className="row">
+                Token uri: <input value={tokenUri} size={20} onChange={handleTokenUri} />
+                </div>
+            <div className="row">
+                <label> Select token to be paid </label>  
+                <select onChange={handleAcceptedMint}>  
+                    <option value = "USDC"> USDC </option>  
+                    <option value = "SOL"> SOL </option>  
+                </select>
+            </div>
+            <div className="buttonContainer">
+                <button className="button" onClick={sendCreateTokenTransaction} disabled={isSending}>
+                    Create Token
+                </button>
+            </div>
             <div>
                 { isSent && <h1> The transaction has processed! {txnExplorer} </h1> }
                 { isSending && <h1> Sending transaction </h1> }

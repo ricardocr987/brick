@@ -24,3 +24,38 @@ a {
   flex-direction: column;
   align-items: center;
 }
+
+.create {
+  display: flex;
+  flex-direction: row;
+  margin-left: 5%;
+  margin-right: 5%;
+}
+
+.column {
+  display: flex;
+  min-width: 300px;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.left {
+  background-color: #ccc;
+}
+
+.right {
+  background-color: #eee;
+}
+
+.buttonContainer {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.button {
+  padding: 10px 20px;
+  text-transform: uppercase;
+}
