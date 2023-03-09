@@ -111,32 +111,32 @@ export const CreateToken = () => {
                 <h1>CREATE TOKEN:</h1>
             </div>
             <div className="row">
-                App name: <input value={appName} size={20} onChange={handleAppName} />
+                App name: <input className="input" value={appName} size={20} onChange={handleAppName} />
             </div>
             <div className="row">
-                Off chain id: <input value={offChainId} size={20} onChange={handleId} />
+                Off chain id: <input className="input" value={offChainId} size={20} onChange={handleId} />
             </div>
             <div className="row">
-                Refund timespan: <input value={refundTime} size={20} onChange={handleRefundTime} />
+                Refund timespan: <input className="input" value={refundTime} size={20} onChange={handleRefundTime} />
             </div>
             <div className="row">
-                Price: <input value={tokenPrice} size={20} onChange={handleTokenPrice} />
+                Price: <input className="input" value={tokenPrice} size={20} onChange={handleTokenPrice} />
             </div>
             <div className="row">
-                Exemplars: <input value={exemplars} size={20} onChange={handleExemplars} />
+                Exemplars: <input className="input" value={exemplars} size={20} onChange={handleExemplars} />
             </div>
             <div className="row">
-                Token name: <input value={tokenName} size={20} onChange={handleTokenName} />
+                Token name: <input className="input" value={tokenName} size={20} onChange={handleTokenName} />
             </div>
             <div className="row">
-                Token symbol: <input value={tokenSymbol} size={20} onChange={handleTokenSymbol} />
+                Token symbol: <input className="input" value={tokenSymbol} size={20} onChange={handleTokenSymbol} />
             </div>
             <div className="row">
-                Token uri: <input value={tokenUri} size={20} onChange={handleTokenUri} />
+                Token uri: <input className="input" value={tokenUri} size={20} onChange={handleTokenUri} />
                 </div>
             <div className="row">
                 <label> Select token to be paid </label>  
-                <select onChange={handleAcceptedMint}>  
+                <select className="input" onChange={handleAcceptedMint}>  
                     <option value = "USDC"> USDC </option>  
                     <option value = "SOL"> SOL </option>  
                 </select>

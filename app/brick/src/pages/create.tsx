@@ -4,10 +4,10 @@ import { CreateToken } from "@/components/CreateToken";
 const CreateTokenPage = () => {
     return (
         <div className="create">
-            <div className="column left">
+            <div className="column">
                 <CreateApp/>
             </div>
-            <div className="column right">
+            <div className="column">
                 <CreateToken/>
             </div>
         </div>

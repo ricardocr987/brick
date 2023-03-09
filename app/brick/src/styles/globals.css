@@ -26,10 +26,9 @@ a {
 }
 
 .create {
+  margin-top: 50px;
   display: flex;
-  flex-direction: row;
-  margin-left: 5%;
-  margin-right: 5%;
+  flex-direction: column;
 }
 
 .column {
@@ -37,15 +36,9 @@ a {
   min-width: 300px;
   padding: 20px;
   border-radius: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.4);
-}
-
-.left {
-  background-color: #ccc;
-}
-
-.right {
-  background-color: #eee;
+  border: 3px solid rgba(0, 0, 0, 1);
+  color: white;
+  background: radial-gradient(circle, rgba(222,151,0,1) 0%, rgba(214,88,0,1) 100%);
 }
 
 .buttonContainer {
@@ -56,6 +49,16 @@ a {
 }
 
 .button {
+  border-radius: 10px;
+  border: 2px solid rgba(0, 0, 0, 1);
+  background: rgb(195,170,34);
+  background: radial-gradient(circle, rgba(222,151,0,1) 0%, rgba(214,88,0,1) 100%);
   padding: 10px 20px;
   text-transform: uppercase;
+  color: white;
+}
+
+.input {
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 1);
 }

@@ -57,10 +57,10 @@ export const CreateApp = () => {
                 <h1>CREATE APP:</h1>
             </div>
             <div className="row">
-                App name: <input value={appName} size={20} onChange={handleAppName} />
+                App name: <input className="input" value={appName} size={20} onChange={handleAppName} />
             </div>
             <div className="row">
-                Fees: <input value={fee} size={20} onChange={handleFee} />
+                Basis fee points: <input className="input" value={fee} size={20} onChange={handleFee} />
             </div>
             <div className="buttonContainer">
                 <button className="button" onClick={sendCreateAppTransaction} disabled={isSending}>
