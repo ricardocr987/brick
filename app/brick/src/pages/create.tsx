@@ -1,7 +1,6 @@
 import { CreateApp } from "@/components/CreateApp";
 import { CreateToken } from "@/components/CreateToken";
 import { Connection } from "@solana/web3.js";
-import { loadEnvConfig } from '@next/env'
 
 const CreateTokenPage = () => {
     const connection = new Connection(process.env.RPC, "confirmed")    

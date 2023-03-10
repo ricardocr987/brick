@@ -8,7 +8,7 @@ import BN from "bn.js";
 import { useState } from "react";
 
 export const CreateToken = ({ connection }: { connection: Connection }) => {
-    const { sendTransaction, publicKey } = useWallet()
+    const { sendTransaction, publicKey, connected } = useWallet()
     const [txnExplorer, setTxnExplorer] = useState("")
     const [isSending, setIsSending] = useState(false)
     const [isSent, setIsSent] = useState(false)
@@ -123,14 +123,12 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
                     <option value="SOL"> SOL </option>  
                 </select>
             </div>
-            <div className="innerRow">
-                <button className="button" onClick={sendCreateTokenTransaction} disabled={(isSending || !formCompleted || publicKey === null)}>
+                <button className="button" onClick={() => sendCreateTokenTransaction()} disabled={(isSending && !formCompleted && connected)}>
                     Create Token
                 </button>
-            </div>
             <div className="innerRow">
-                { isSending && <h4> Sending transaction </h4> }
-                { isSent && <h4> The transaction has processed! <a href={txnExplorer} style={{ color: 'black' }}>View Transaction</a> </h4> }
+                { isSending && <h4 style={{ fontSize: '13px' }}> Sending transaction </h4> }
+                { isSent && <h4 style={{ fontSize: '13px' }}> The transaction has processed! <a href={txnExplorer} style={{ color: 'black' }}>View Transaction</a> </h4> }
             </div>
         </div>
     )

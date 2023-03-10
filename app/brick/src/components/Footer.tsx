@@ -7,7 +7,7 @@ export const Footer = () => {
         <div className={styles.column}>
           <a href="https://twitter.com/ricardocr987">
               <img
-                src="twitter-square.svg"
+                src="/twitter-square.svg"
                 height="50"
                 width="100" />
           </a>
@@ -15,7 +15,7 @@ export const Footer = () => {
         <div className={styles.column}>
           <a href="https://github.com/ricardocr987/brick">
               <img
-                  src="github-square.svg"
+                  src="/github-square.svg"
                   height="55"
                   width="100" />
           </a>

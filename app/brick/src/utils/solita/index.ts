@@ -11,7 +11,6 @@ import {
   TokenMetadata,
   TokenMetadataArgs,
 } from './accounts/index'
-
 import { SellerConfig, TransactionsInfo, Bumps } from './types/index'
 
 export type CreateAppInstruction = {

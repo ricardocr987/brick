@@ -1,12 +1,12 @@
-import { ACCOUNTS_DATA_LAYOUT, AccountType, AssetArgs, BRICK_PROGRAM_ID_PK } from "@/utils";
-import { getAssetPubkey } from "@/utils/helpers";
+import { ACCOUNTS_DATA_LAYOUT, AccountType, TokenMetadataArgs, BRICK_PROGRAM_ID_PK } from "@/utils";
+import { getTokenPubkey } from "@/utils/helpers";
 import { AccountLayout, RawAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { useEffect, useState } from "react";
 
 async function getTokens(publicKey: PublicKey, connection: Connection) {
-    const tokensData: (AssetArgs & RawAccount)[] = []
+    const tokensData: (TokenMetadataArgs & RawAccount)[] = []
     const walletTokens = await connection.getTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID })
 
     for (const tokenAccount of walletTokens.value){
@@ -14,10 +14,10 @@ async function getTokens(publicKey: PublicKey, connection: Connection) {
             const accountInfo = await connection.getAccountInfo(tokenAccount.pubkey)
             if (accountInfo && accountInfo.data){
                 const accountData = AccountLayout.decode(accountInfo.data)
-                const assetPubkey = getAssetPubkey(accountData.mint)
+                const assetPubkey = getTokenPubkey(accountData.mint)
                 try {
                     const assetInfo = await connection.getAccountInfo(assetPubkey)
-                    const assetData = ACCOUNTS_DATA_LAYOUT[AccountType.Asset].deserialize(assetInfo)[0]
+                    const assetData = ACCOUNTS_DATA_LAYOUT[AccountType.TokenMetadata].deserialize(assetInfo)[0]
                     tokensData.push({
                         ...assetData,
                         ...accountData
@@ -35,7 +35,7 @@ async function getTokens(publicKey: PublicKey, connection: Connection) {
 }
 
 async function getTokensOnSale(publicKey: PublicKey, connection: Connection) {
-    const tokensOnSale: AssetArgs[] = []
+    const tokensOnSale: TokenMetadataArgs[] = []
     const encodedTokensOnSale = await connection.getProgramAccounts(
         BRICK_PROGRAM_ID_PK,
         {
@@ -43,7 +43,7 @@ async function getTokensOnSale(publicKey: PublicKey, connection: Connection) {
                 {
                     memcmp: {
                         bytes: publicKey.toString(),
-                        offset: 212, // authority offset, to get assets this user is selling
+                        offset: 136, // authority offset, to get tokens this user is selling
                     },
                 },
             ],
@@ -51,8 +51,9 @@ async function getTokensOnSale(publicKey: PublicKey, connection: Connection) {
     )
 
     for (const tokenAccount of encodedTokensOnSale){
-        const assetData = ACCOUNTS_DATA_LAYOUT[AccountType.Asset].deserialize(tokenAccount.account)[0]
+        const assetData = ACCOUNTS_DATA_LAYOUT[AccountType.TokenMetadata].deserialize(tokenAccount.account)[0]
         tokensOnSale.push(assetData)
+        console.log(assetData)
     }
 
     return tokensOnSale
@@ -60,7 +61,7 @@ async function getTokensOnSale(publicKey: PublicKey, connection: Connection) {
 
 const UserTokensPage = () => {
     const wallet = useWallet()
-    const { connection } = useConnection()
+    const connection = new Connection(process.env.RPC, "confirmed")
     const [tokens, setTokens] = useState([]);
     const [tokensOnSale, setTokensOnSale] = useState([]);
 

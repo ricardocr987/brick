@@ -42,8 +42,8 @@ export const Navbar = ({ NavItems }: NavProps) => {
           <div className={styles.navbar_logo}>
           </div>
 
-          <div className={styles.mobile_icon} onClick={showSidebar}>
-            <img src="menu-burguer-icon.svg"/>
+          <div className={styles.mobile_icon} onClick={() => showSidebar()}>
+            <img src="/menu-burguer-icon.svg"/>
           </div>
 
           <div className={styles.nav_menu}>

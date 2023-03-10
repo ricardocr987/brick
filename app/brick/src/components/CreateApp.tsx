@@ -1,11 +1,11 @@
 import { getAppPubkey } from "@/utils/helpers";
 import { CreateAppInstructionAccounts, createCreateAppInstruction, CreateAppInstructionArgs } from "@/utils/solita/instructions";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction } from "@solana/web3.js";
 import { useState } from "react";
 
 export const CreateApp = ({ connection }: { connection: Connection }) => {
-    const { sendTransaction, publicKey } = useWallet()
+    const { sendTransaction, publicKey, connected } = useWallet()
     const [txnExplorer, setTxnExplorer] = useState("")
     const [isSending, setIsSending] = useState(false)
     const [isSent, setIsSent] = useState(false)
@@ -71,7 +71,7 @@ export const CreateApp = ({ connection }: { connection: Connection }) => {
                 Basis fee points: <input className="input" value={fee} size={20} onChange={handleFee} onBlur={handleInputChange}/>
             </div>
             <div className="innerRow">
-                <button className="button" onClick={sendCreateAppTransaction} disabled={isSending && !formCompleted || publicKey === null}>
+                <button className="button" onClick={() => sendCreateAppTransaction()} disabled={isSending && !formCompleted && connected}>
                     Create App
                 </button>
             </div>

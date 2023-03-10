@@ -11,20 +11,20 @@ interface NavProps {
 export const Sidebar = ({ NavItems, sidebar, showSidebar }: NavProps) => {
   return (
     <div
-      onClick={showSidebar}
+      onClick={() => showSidebar()}
       className={
         sidebar ? styles.sidebar_container_active : styles.sidebar_container
       }
     >
       <div className={styles.close_icon}>
-        <img src="close-icon.svg"
+        <img src="/close-icon.svg"
           height="40"
           width="40" />
       </div>
       <div className={styles.sidebar_menu}>
         { NavItems.map(route => (
           <div className={styles.sidebar_links} key={route.key}>
-            <Link href={route.url} passHref onClick={showSidebar}>
+            <Link href={route.url} passHref onClick={() => showSidebar()}>
                 {route.label}
             </Link>
           </div>
@@ -35,7 +35,7 @@ export const Sidebar = ({ NavItems, sidebar, showSidebar }: NavProps) => {
             <div className={styles.column}>
               <a href="https://twitter.com/ricardocr987">
                   <img
-                    src="twitter-square.svg"
+                    src="/twitter-square.svg"
                     height="50"
                     width="100" />
               </a>
@@ -43,7 +43,7 @@ export const Sidebar = ({ NavItems, sidebar, showSidebar }: NavProps) => {
             <div className={styles.column}>
               <a href="https://github.com/ricardocr987/brick">
                 <img
-                  src="github-square.svg"
+                  src="/github-square.svg"
                   height="55"
                   width="100" />
               </a>
