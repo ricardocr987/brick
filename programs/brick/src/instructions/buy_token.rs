@@ -74,8 +74,10 @@ pub struct BuyToken<'info> {
     )]
     pub payment_vault: Box<Account<'info, TokenAccount>>,
     #[account(
-        mut,
-        constraint = buyer_token_vault.mint == token_mint.key() @ ErrorCode::IncorrectBuyerTokenAccountToStorePurchasedToken
+        init_if_needed,
+        payer = authority, 
+        associated_token::mint = token_mint, 
+        associated_token::authority = authority,
     )]
     pub buyer_token_vault: Box<Account<'info, TokenAccount>>, // buyer token account to store token token
 }

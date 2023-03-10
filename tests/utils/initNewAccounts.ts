@@ -52,7 +52,7 @@ export async function initNewAccounts(
       Buffer.from("payment", "utf-8"),
       tokenMint.toBuffer(),
       buyerKeypair.publicKey.toBuffer(),
-      buyTimestamp.toBuffer("le", 8),
+      Buffer.from(buyTimestamp.toArray('le', 8)),
     ],
     program.programId
   );

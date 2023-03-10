@@ -165,18 +165,6 @@ describe("brick", () => {
       assert.equal(token.json.uri, tokenUri);
     }
 
-    // initilizes buyer token account to store the token
-    await provider.sendAndConfirm(
-      new anchor.web3.Transaction().add(
-        createAssociatedTokenAccountInstruction(
-          provider.wallet.publicKey,
-          buyerTokenVault,
-          buyerKeypair.publicKey,
-          tokenMint
-        )
-      )
-    );
-
     await program.methods
       .buyToken(buyTimestamp)
       .accounts({
@@ -415,7 +403,7 @@ describe("brick", () => {
       .rpc()
       .catch(console.error);
 
-    // initilizes buyer token account to store the token
+    // initilizes buyer token account to store the token: added init if needed so unnecessary
     await provider.sendAndConfirm(
       new anchor.web3.Transaction().add(
         createAssociatedTokenAccountInstruction(
