@@ -107,9 +107,9 @@ const AppPage = () => {
                         <img className="imgContainer" src={token.metadata.json.image} />
                     </a>
                     <button className="tokensButton" onClick={() => sendBuyTokenTransaction(token.token.tokenMint, token.token.sellerConfig.acceptedMint)} disabled={isSending && !connected}>
-                        { !isSending && !isSent && <h4 style={{ fontSize: '13px' }}> REFUND </h4> }
+                        { !isSending && !isSent && <h4 style={{ fontSize: '13px' }}> BUY {token.token.sellerConfig.price} </h4> }
                         { isSending && <h4 style={{ fontSize: '13px' }}> Sending </h4> }
-                        { isSending && <h4 style={{ fontSize: '13px' }}> <a href={txnExplorer}>View Txn</a> </h4>}
+                        { isSent && <h4 style={{ fontSize: '13px' }}> <a href={txnExplorer}>View Txn</a> </h4>}
                     </button>
                 </div>
             ))}

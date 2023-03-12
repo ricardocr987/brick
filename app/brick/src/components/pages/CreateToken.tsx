@@ -62,7 +62,7 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
                 offChainId2: offChainId2,
                 offChainMetadata: offChainMetadata,
                 refundTimespan: new BN(refundTime),
-                tokenPrice: Number(tokenPrice)*10^9,// to convert it to the right amount
+                tokenPrice: Number(tokenPrice),// to convert it to the right amount
                 exemplars: Number(exemplars),
                 tokenName: tokenName,
                 tokenSymbol: tokenSymbol,
