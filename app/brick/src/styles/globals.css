@@ -43,11 +43,11 @@ a {
 }
 
 .button {
-  min-width: 200px;
+  width: 180px;
   margin-top: 10px;
   margin-bottom: 10px;
-  margin-left: 10%;
-  margin-right: 10%;
+  margin-left: 17%;
+  margin-right: 17%;
   justify-content: center;
   align-items: center;
   border-radius: 10px;
@@ -76,8 +76,8 @@ a {
 }
 
 .innerContainer {
-  width: 250px;
-  height: 270px;
+  width: 200px;
+  height: 200px;
   background: radial-gradient(circle, rgba(222,151,0,1) 0%, rgba(214,88,0,1) 100%);
   display: flex;
   justify-content: center;
@@ -94,12 +94,47 @@ a {
 
 .imgContainer {
   margin-top: 5%;
-  margin-left: 10%;
-  margin-right: 10%;
-  width: 80%;
+  margin-left: 20%;
+  margin-right: 20%;
+  width: 60%;
   display: flex;
   justify-content: center;
   align-items: center;
   border-radius: 10px;
   border: 2px solid rgba(0, 0, 0, 1);
+}
+
+.tokens {
+  margin-top: 100px;
+  margin-left: 2%;
+  margin-right: 2%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tokensRow {
+  margin-bottom: 10px;
+  display: flex;
+  height: 240px;
+  padding: 20px;
+  border-radius: 10px;
+  border: 3px solid rgba(0, 0, 0, 1);
+  margin-top: 10px;
+  color: white;
+  background: radial-gradient(circle, rgba(222,151,0,1) 0%, rgba(214,88,0,1) 100%);
+}
+
+.tokensButton {
+  width: 90px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid rgba(0, 0, 0, 1);
+  background: rgb(195,170,34);
+  background: radial-gradient(circle, rgba(222,151,0,1) 0%, rgba(214,88,0,1) 100%);
+  padding: 10px;
+  text-transform: uppercase;
+  color: white;
 }

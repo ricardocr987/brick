@@ -16,8 +16,8 @@ export const mintFromSymbol: Record<string, string> = {
     'USDC': 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
     'MSOL': 'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So'
 }
-export const decimalsFromSymbol: Record<string, number> = {
-    'SOL': 9,
-    'USDC': 6,
-    'MSOL': 9
+export const decimalsFromPubkey: Record<string, number> = {
+    'So11111111111111111111111111111111111111112': 9,
+    'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': 6,
+    'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So': 9
 }

@@ -1,5 +1,5 @@
-import { CreateApp } from "@/components/CreateApp";
-import { CreateToken } from "@/components/CreateToken";
+import { CreateApp } from "@/components/pages/CreateApp";
+import { CreateToken } from "@/components/pages/CreateToken";
 import { Connection } from "@solana/web3.js";
 
 const CreateTokenPage = () => {

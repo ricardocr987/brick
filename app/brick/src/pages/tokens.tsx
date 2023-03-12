@@ -1,28 +1,32 @@
-import { ACCOUNTS_DATA_LAYOUT, AccountType, TokenMetadataArgs, BRICK_PROGRAM_ID_PK } from "@/utils";
+import { HoldingTokens } from "@/components/pages/HoldingTokens";
+import { SellingTokens } from "@/components/pages/SellingTokens";
+import { ACCOUNTS_DATA_LAYOUT, AccountType, TokenMetadataArgs, BRICK_PROGRAM_ID_PK, ACCOUNT_DISCRIMINATOR } from "@/utils";
 import { getTokenPubkey } from "@/utils/helpers";
+import { TokensWithMetadata } from "@/utils/types";
+import { Metaplex, Sft } from "@metaplex-foundation/js";
 import { AccountLayout, RawAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, PublicKey } from "@solana/web3.js";
+import bs58 from "bs58";
 import { useEffect, useState } from "react";
 
 async function getTokens(publicKey: PublicKey, connection: Connection) {
-    const tokensData: (TokenMetadataArgs & RawAccount)[] = []
+    const tokensData: TokensWithMetadata[] = []
     const walletTokens = await connection.getTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID })
+    const metaplex = new Metaplex(connection)
 
     for (const tokenAccount of walletTokens.value){
         try {
             const accountInfo = await connection.getAccountInfo(tokenAccount.pubkey)
             if (accountInfo && accountInfo.data){
                 const accountData = AccountLayout.decode(accountInfo.data)
-                const assetPubkey = getTokenPubkey(accountData.mint)
-                try {
-                    const assetInfo = await connection.getAccountInfo(assetPubkey)
-                    const assetData = ACCOUNTS_DATA_LAYOUT[AccountType.TokenMetadata].deserialize(assetInfo)[0]
-                    tokensData.push({
-                        ...assetData,
-                        ...accountData
-                    })
-                } catch(e) {} // if it doesnt exists, it isnt a token from the token access program
+                const tokenPubkey = getTokenPubkey(accountData.mint)
+                const tokenInfo = await connection.getAccountInfo(tokenPubkey)
+                if (tokenInfo != null) {
+                    const token = ACCOUNTS_DATA_LAYOUT[AccountType.TokenMetadata].deserialize(tokenInfo.data)[0]
+                    const metadata = await metaplex.nfts().findByMint({ mintAddress: accountData.mint }) as Sft
+                    tokensData.push({ token, metadata })
+                }
             } else {
                 console.log('accountInfo or its data is undefined')
             }
@@ -31,15 +35,17 @@ async function getTokens(publicKey: PublicKey, connection: Connection) {
         }
     }
 
-    return tokensData
-}
-
-async function getTokensOnSale(publicKey: PublicKey, connection: Connection) {
-    const tokensOnSale: TokenMetadataArgs[] = []
+    const tokensOnSale: TokensWithMetadata[] = []
     const encodedTokensOnSale = await connection.getProgramAccounts(
         BRICK_PROGRAM_ID_PK,
         {
             filters: [
+                {
+                    memcmp: {
+                        bytes: bs58.encode(ACCOUNT_DISCRIMINATOR[AccountType.TokenMetadata]),
+                        offset: 0,
+                    },
+                },
                 {
                     memcmp: {
                         bytes: publicKey.toString(),
@@ -51,34 +57,42 @@ async function getTokensOnSale(publicKey: PublicKey, connection: Connection) {
     )
 
     for (const tokenAccount of encodedTokensOnSale){
-        const assetData = ACCOUNTS_DATA_LAYOUT[AccountType.TokenMetadata].deserialize(tokenAccount.account)[0]
-        tokensOnSale.push(assetData)
-        console.log(assetData)
+        const token = ACCOUNTS_DATA_LAYOUT[AccountType.TokenMetadata].deserialize(tokenAccount.account.data)[0]
+        const metadata = await metaplex.nfts().findByMint({ mintAddress: token.tokenMint }) as Sft
+        tokensOnSale.push({ token, metadata })
     }
 
-    return tokensOnSale
+    return { tokensData, tokensOnSale } 
 }
 
 const UserTokensPage = () => {
     const wallet = useWallet()
-    const connection = new Connection(process.env.RPC, "confirmed")
+    const connection = new Connection(process.env.RPC, "confirmed")    
     const [tokens, setTokens] = useState([]);
-    const [tokensOnSale, setTokensOnSale] = useState([]);
+    const [tokensOnSale, setTokenOnSale] = useState([]);
 
     useEffect(() => {
         const setAccountState = async () => {
             if (wallet.connected) {
-                const tokensData = await getTokens(wallet.publicKey, connection)
+                const { tokensData, tokensOnSale } = await getTokens(wallet.publicKey, connection)
                 setTokens(tokensData)
-                const tokensOnSale = await getTokensOnSale(wallet.publicKey, connection)
-                setTokensOnSale(tokensOnSale)
+                setTokenOnSale(tokensOnSale)
             }
         }
         setAccountState()
     }, [wallet.connected]);
     
     return (
-        <h1>User tokens page</h1>
+        <div className="tokens">
+            <h1 style={{fontSize: "20px"}}>TOKENS LISTED BY YOU</h1>
+            <div className="tokensRow">
+                <SellingTokens connection={connection} tokens={tokensOnSale}/>
+            </div>
+            <h1 style={{fontSize: "20px"}}>TOKENS BOUGHT USING BRICK</h1>
+            <div className="tokensRow">
+                <HoldingTokens connection={connection} tokens={tokens}/>
+            </div>
+        </div>
     )
 };
 

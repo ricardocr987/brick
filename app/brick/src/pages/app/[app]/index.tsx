@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Metaplex, Sft } from "@metaplex-foundation/js";
 import { TokensWithMetadata } from "@/utils/types";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
 import BN from "bn.js";
 
 async function getTokens(appName: string, connection: Connection): Promise<TokensWithMetadata[]> {
@@ -20,7 +20,7 @@ async function getTokens(appName: string, connection: Connection): Promise<Token
                 {
                     memcmp: {
                         bytes: bs58.encode(ACCOUNT_DISCRIMINATOR[AccountType.TokenMetadata]),
-                        offset: 0, // authority offset, to get tokens this user is selling
+                        offset: 0,
                     },
                 },
                 {
@@ -35,7 +35,7 @@ async function getTokens(appName: string, connection: Connection): Promise<Token
     for (const tokenAccount of encodedAppTokens){
         const token = ACCOUNTS_DATA_LAYOUT[AccountType.TokenMetadata].deserialize(tokenAccount.account.data)[0]
         const metadata = await metaplex.nfts().findByMint({ mintAddress: token.tokenMint }) as Sft
-        tokensData.push({token, metadata})
+        tokensData.push({ token, metadata })
     }
 
     return tokensData
@@ -45,7 +45,7 @@ const AppPage = () => {
     const router = useRouter()
     const appName = router.query.app
     const connection = new Connection(process.env.RPC, "confirmed")
-    const { sendTransaction, publicKey } = useWallet()
+    const { sendTransaction, publicKey, connected } = useWallet()
     const [txnExplorer, setTxnExplorer] = useState("")
     const [isSending, setIsSending] = useState(false)
     const [isSent, setIsSent] = useState(false)
@@ -106,8 +106,10 @@ const AppPage = () => {
                     <a href={`https://solana.fm/address/${token.token.tokenMint.toString()}`}>
                         <img className="imgContainer" src={token.metadata.json.image} />
                     </a>
-                    <button className="button" onClick={() => sendBuyTokenTransaction(token.token.tokenMint, token.token.sellerConfig.acceptedMint)} disabled={isSending || publicKey === null}>
-                        Buy Token
+                    <button className="tokensButton" onClick={() => sendBuyTokenTransaction(token.token.tokenMint, token.token.sellerConfig.acceptedMint)} disabled={isSending && !connected}>
+                        { !isSending && !isSent && <h4 style={{ fontSize: '13px' }}> REFUND </h4> }
+                        { isSending && <h4 style={{ fontSize: '13px' }}> Sending </h4> }
+                        { isSending && <h4 style={{ fontSize: '13px' }}> <a href={txnExplorer}>View Txn</a> </h4>}
                     </button>
                 </div>
             ))}

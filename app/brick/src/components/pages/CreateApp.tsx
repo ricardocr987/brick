@@ -71,13 +71,11 @@ export const CreateApp = ({ connection }: { connection: Connection }) => {
                 Basis fee points: <input className="input" value={fee} size={20} onChange={handleFee} onBlur={handleInputChange}/>
             </div>
             <div className="innerRow">
-                <button className="button" onClick={() => sendCreateAppTransaction()} disabled={isSending && !formCompleted && connected}>
-                    Create App
+                <button className="button" onClick={() => sendCreateAppTransaction()} disabled={isSending && !formCompleted && !connected}>
+                    { !isSending && !isSent && <h4 style={{ fontSize: '13px' }}> CREATE APP </h4> }
+                    { isSending && <h4 style={{ fontSize: '13px' }}> Sending transaction </h4> }
+                    { isSent && <h4 style={{ fontSize: '13px' }}> <a href={txnExplorer}>View Transaction</a> </h4>}
                 </button>
-            </div>
-            <div className="innerRow">
-                { isSending && <h4 style={{ fontSize: '13px' }}> Sending transaction </h4> }
-                { isSent && <h4 style={{ fontSize: '13px' }}> The transaction has processed! <a href={txnExplorer} style={{ color: 'black' }}>View Transaction</a> </h4> }
             </div>
         </div>
     )

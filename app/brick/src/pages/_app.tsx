@@ -4,13 +4,11 @@ import Head from 'next/head';
 import { ContextProvider } from '@/components/contexts/ContextProvider';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import { Connection } from '@solana/web3.js';
 
 const NavItems = [
   { label: "Home", url: "/", key: 1 },
   { label: "Apps", url: "/app", key: 2 },
   { label: "Create", url: "/create", key: 3 },
-  { label: "Give access", url: "/giveAccess", key: 4 },
   { label: "My tokens", url: "/tokens", key: 5 },
 ];
 

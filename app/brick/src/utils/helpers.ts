@@ -1,4 +1,3 @@
-import { BN } from "@project-serum/anchor";
 import { PublicKey } from "@solana/web3.js";
 import { METADATA_PROGRAM_ID_PK, BRICK_PROGRAM_ID_PK } from "./constants";
 

@@ -1,4 +1,4 @@
-import { METADATA_PROGRAM_ID_PK, mintFromSymbol } from "@/utils";
+import { decimalsFromPubkey, METADATA_PROGRAM_ID_PK, mintFromSymbol } from "@/utils";
 import { getTokenMintPubkey, getTokenPubkey, getMetadataPubkey, getAppPubkey } from "@/utils/helpers";
 import { CreateTokenInstructionAccounts, CreateTokenInstructionArgs, createCreateTokenInstruction } from "@/utils/solita/instructions";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
@@ -37,6 +37,7 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
             setTxnExplorer(null)
             setIsSending(true)
     
+            const acceptedMintDecimals = decimalsFromPubkey[acceptedMint.toString()]
             const offChainId1 = offChainId.slice(0, 32)
             let offChainId2 = offChainId.slice(32, 64)
             if (offChainId.length < 32) offChainId2 = ""
@@ -61,7 +62,7 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
                 offChainId2: offChainId2,
                 offChainMetadata: offChainMetadata,
                 refundTimespan: new BN(refundTime),
-                tokenPrice: Number(tokenPrice),
+                tokenPrice: Number(tokenPrice)*10^9,// to convert it to the right amount
                 exemplars: Number(exemplars),
                 tokenName: tokenName,
                 tokenSymbol: tokenSymbol,
@@ -118,18 +119,16 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
             <div className="innerRow">
                 <label> Select token to be paid </label>  
                 <select className="input" onBlur={handleInputChange} onChange={ e => setAcceptedMint(new PublicKey(mintFromSymbol[e.target.value])) }>  
-                    <option value="">Select token</option>
-                    <option value="USDC"> USDC </option>  
+                    <option value="USDC"> USDC </option> 
+                    <option value="BONK"> BONK </option>   
                     <option value="SOL"> SOL </option>  
                 </select>
             </div>
-                <button className="button" onClick={() => sendCreateTokenTransaction()} disabled={(isSending && !formCompleted && connected)}>
-                    Create Token
-                </button>
-            <div className="innerRow">
+            <button className="button" onClick={() => sendCreateTokenTransaction()} disabled={(isSending && !formCompleted && !connected)}>
+                { !isSending && !isSent && <h4 style={{ fontSize: '13px' }}> CREATE TOKEN </h4> }
                 { isSending && <h4 style={{ fontSize: '13px' }}> Sending transaction </h4> }
-                { isSent && <h4 style={{ fontSize: '13px' }}> The transaction has processed! <a href={txnExplorer} style={{ color: 'black' }}>View Transaction</a> </h4> }
-            </div>
+                { isSent && <h4 style={{ fontSize: '13px' }}> <a href={txnExplorer}>View Transaction</a> </h4>}
+            </button>
         </div>
     )
 }
