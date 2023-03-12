@@ -34,21 +34,24 @@ export const CreateApp = ({ connection }: { connection: Connection }) => {
                 appName: appName,
                 feeBasisPoints: Number(fee),
             }
+            try {
+                const transaction = new Transaction().add(
+                    createCreateAppInstruction(accounts, args)
+                )
+                let blockhash = (await connection.getLatestBlockhash('finalized')).blockhash;
+                transaction.recentBlockhash = blockhash;
 
-            const transaction = new Transaction().add(
-                createCreateAppInstruction(accounts, args)
-            )
-            let blockhash = (await connection.getLatestBlockhash('finalized')).blockhash;
-            transaction.recentBlockhash = blockhash;
-
-            const signature = await sendTransaction(
-                transaction,
-                connection,
-            )
-        
-            setTxnExplorer(`https://solana.fm/tx/${signature}`)
-            setIsSent(true)
-            setIsSending(false)
+                const signature = await sendTransaction(
+                    transaction,
+                    connection,
+                )
+            
+                setTxnExplorer(`https://solana.fm/tx/${signature}`)
+                setIsSent(true)
+                setIsSending(false)
+            } catch {
+                setIsSending(false)
+            }
         }
     }
 

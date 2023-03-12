@@ -37,7 +37,10 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
             setTxnExplorer(null)
             setIsSending(true)
     
+            if (!tokenUri.includes('arweave')) setTokenUri('https://arweave.net/8B4J8VmfJ9-zwWLz8XgGY8V8qa-xEMDAhol411cJjkk')
             const acceptedMintDecimals = decimalsFromPubkey[acceptedMint.toString()]
+            const parsedNumber = parseFloat(tokenPrice.replace(/,/g, ''))
+            const standardizedNumber = parsedNumber * Math.pow(10, acceptedMintDecimals)
             const offChainId1 = offChainId.slice(0, 32)
             let offChainId2 = offChainId.slice(32, 64)
             if (offChainId.length < 32) offChainId2 = ""
@@ -62,25 +65,29 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
                 offChainId2: offChainId2,
                 offChainMetadata: offChainMetadata,
                 refundTimespan: new BN(refundTime),
-                tokenPrice: Number(tokenPrice),// to convert it to the right amount
+                tokenPrice: standardizedNumber,// to convert it to the right amount
                 exemplars: Number(exemplars),
                 tokenName: tokenName,
                 tokenSymbol: tokenSymbol,
                 tokenUri: tokenUri,
             }
-            const transaction = new Transaction().add(
-                createCreateTokenInstruction(accounts, args)
-            )
-            let blockhash = (await connection.getLatestBlockhash('finalized')).blockhash;
-            transaction.recentBlockhash = blockhash;
-            const signature = await sendTransaction(
-                transaction,
-                connection,
-            )
-        
-            setTxnExplorer(`https://solana.fm/tx/${signature}`)
-            setIsSent(true)
-            setIsSending(false)
+            try {
+                const transaction = new Transaction().add(
+                    createCreateTokenInstruction(accounts, args)
+                )
+                let blockhash = (await connection.getLatestBlockhash('finalized')).blockhash;
+                transaction.recentBlockhash = blockhash;
+                const signature = await sendTransaction(
+                    transaction,
+                    connection,
+                )
+            
+                setTxnExplorer(`https://solana.fm/tx/${signature}`)
+                setIsSent(true)
+                setIsSending(false)
+            } catch {
+                setIsSending(false)
+            }
         }
     }
 
@@ -124,7 +131,7 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
                     <option value="SOL"> SOL </option>  
                 </select>
             </div>
-            <button className="button" onClick={() => sendCreateTokenTransaction()} disabled={(isSending && !formCompleted && !connected)}>
+            <button className="button" onClick={() => sendCreateTokenTransaction()}>
                 { !isSending && !isSent && <h4 style={{ fontSize: '13px' }}> CREATE TOKEN </h4> }
                 { isSending && <h4 style={{ fontSize: '13px' }}> Sending transaction </h4> }
                 { isSent && <h4 style={{ fontSize: '13px' }}> <a href={txnExplorer}>View Transaction</a> </h4>}

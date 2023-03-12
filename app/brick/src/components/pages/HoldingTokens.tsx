@@ -6,7 +6,12 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, TOKEN_PROGRAM_I
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction } from "@solana/web3.js";
 import bs58 from "bs58";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import SwiperCore, { Navigation, Pagination } from "swiper";
+import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/swiper-bundle.css";
+
+SwiperCore.use([Navigation]);
 
 type GetPaymentAccount = {
     paymentPubKey: PublicKey,
@@ -44,17 +49,30 @@ async function getPaymentAccount(connection: Connection, receiver: PublicKey, to
         paidMint: decoded.paidMint,
     }
 }
+
 export const HoldingTokens = ({ connection, tokens }: { connection: Connection, tokens: TokensWithMetadata[] }) => {
     const { sendTransaction, publicKey, connected } = useWallet()
-    const [txnExplorer, setTxnExplorer] = useState("")
-    const [isSendingBurn, setIsSendingBurn] = useState(false)
-    const [isSentBurn, setIsSentBurn] = useState(false)
-    const [isSendingRefund, setIsSendingRefund] = useState(false)
-    const [isSentRefund, setIsSentRefund] = useState(false)
+    const [buttonStates, setButtonStates] = useState([]);
 
-    const sendUseTokenTransaction = async (tokenMint: PublicKey) => {
-        setTxnExplorer(null)
-        setIsSendingBurn(true)
+    useEffect(() => {
+        const initButtonState = async () => {
+            const newButtonStates = tokens.map(() => ({
+                isSendingBurn: false,
+                isSentBurn: false,
+                isSendingRefund: false,
+                isSentRefund: false,
+                txnExplorer: null,
+            }));
+            setButtonStates(newButtonStates);
+        };
+        initButtonState()
+    }, [tokens]);
+
+    const sendUseTokenTransaction = async (tokenMint: PublicKey, index: number) => {
+        const newButtonStates = [...buttonStates];
+        newButtonStates[index].isSendingBurn = true;
+        newButtonStates[index].txnExplorer = null;
+        setButtonStates(newButtonStates);
 
         const tokenAccount = getTokenPubkey(tokenMint)
         const buyerTokenVault = await getAssociatedTokenAddress(tokenMint, publicKey)
@@ -68,24 +86,32 @@ export const HoldingTokens = ({ connection, tokens }: { connection: Connection, 
             tokenMint: tokenMint,
             buyerTokenVault: buyerTokenVault,
         }
-        const transaction = new Transaction().add(
-            createUseTokenInstruction(accounts)
-        )
-        let blockhash = (await connection.getLatestBlockhash('finalized')).blockhash;
-        transaction.recentBlockhash = blockhash;
-        const signature = await sendTransaction(
-            transaction,
-            connection,
-        )
-    
-        setTxnExplorer(`https://solana.fm/tx/${signature}`)
-        setIsSentBurn(true)
-        setIsSendingBurn(false)
+        try {
+            const transaction = new Transaction().add(
+                createUseTokenInstruction(accounts)
+            )
+            let blockhash = (await connection.getLatestBlockhash('finalized')).blockhash;
+            transaction.recentBlockhash = blockhash;
+            const signature = await sendTransaction(
+                transaction,
+                connection,
+            )
+            const newButtonStates = [...buttonStates];
+            newButtonStates[index].isSentBurn = true;
+            newButtonStates[index].isSendingBurn = false;
+            newButtonStates[index].txnExplorer = (`https://solana.fm/tx/${signature}`)
+            setButtonStates(newButtonStates);
+        } catch {
+            newButtonStates[index].isSendingBurn = false;
+            setButtonStates(newButtonStates);
+        }
     }
 
-    const sendRefundTransaction = async (tokenMint: PublicKey, acceptedMint: PublicKey) => {
-        setTxnExplorer(null)
-        setIsSendingRefund(true)
+    const sendRefundTransaction = async (tokenMint: PublicKey, index: number) => {
+        const newButtonStates = [...buttonStates];
+        newButtonStates[index].isSendingRefund = true;
+        newButtonStates[index].txnExplorer = null;
+        setButtonStates(newButtonStates);
 
         const tokenAccount = getTokenPubkey(tokenMint)
         const buyerTokenVault = await getAssociatedTokenAddress(tokenMint, publicKey)
@@ -102,42 +128,102 @@ export const HoldingTokens = ({ connection, tokens }: { connection: Connection, 
             paymentVault: paymentVault,
             buyerTokenVault: buyerTokenVault,
         }
-        const transaction = new Transaction().add(
-            createRefundInstruction(accounts)
-        )
-        let blockhash = (await connection.getLatestBlockhash('finalized')).blockhash;
-        transaction.recentBlockhash = blockhash;
-        const signature = await sendTransaction(
-            transaction,
-            connection,
-        )
-    
-        setTxnExplorer(`https://solana.fm/tx/${signature}`)
-        setIsSentRefund(true)
-        setIsSendingRefund(false)
+        try {
+            const transaction = new Transaction().add(
+                createRefundInstruction(accounts)
+            )
+            let blockhash = (await connection.getLatestBlockhash('finalized')).blockhash;
+            transaction.recentBlockhash = blockhash;
+            const signature = await sendTransaction(
+                transaction,
+                connection,
+            )
+            const newButtonStates = [...buttonStates];
+            newButtonStates[index].isSendingRefund = true;
+            newButtonStates[index].isSendingRefund = false;
+            newButtonStates[index].txnExplorer = (`https://solana.fm/tx/${signature}`)
+            setButtonStates(newButtonStates);
+        } catch {
+            newButtonStates[index].isSendingRefund = false;
+            setButtonStates(newButtonStates);
+        }
     }
 
     return (
         <>
-            {tokens.map((token: TokensWithMetadata) => (
-                <div className="innerContainer" key={token.token.tokenMint.toString()}>
-                    <a href={`https://solana.fm/address/${token.token.tokenMint.toString()}`}>
-                        <img className="imgContainer" src={token.metadata.json.image} />
-                    </a>
-                    <div className="innerRow">
-                        <button className="tokensButton" onClick={() => sendUseTokenTransaction(token.token.tokenMint)} disabled={isSendingBurn && !connected}>
-                            { !isSendingBurn && !isSentBurn && <h4 style={{ fontSize: '13px' }}> BURN </h4> }
-                            { isSendingBurn && <h4 style={{ fontSize: '13px' }}> Sending </h4> }
-                            { isSentBurn && <h4 style={{ fontSize: '13px' }}> <a href={txnExplorer}>View Txn</a> </h4>}
-                        </button>
-                        <button className="tokensButton" onClick={() => sendRefundTransaction(token.token.tokenMint, token.token.sellerConfig.acceptedMint)} disabled={isSendingRefund && !connected}>
-                            { !isSendingRefund && !isSentRefund && <h4 style={{ fontSize: '13px' }}> REFUND </h4> }
-                            { isSendingRefund && <h4 style={{ fontSize: '13px' }}> Sending </h4> }
-                            { isSentRefund && <h4 style={{ fontSize: '13px' }}> <a href={txnExplorer}>View Txn</a> </h4>}
-                        </button>
-                    </div>
-                </div>
-            ))}
+            <Swiper
+                spaceBetween={20}
+                slidesPerView={5}
+                navigation
+                pagination={false}
+                className="swiper-wrapper"
+            >
+                {tokens.map((token: TokensWithMetadata, index: number) => (
+                    <SwiperSlide key={index}>
+                        <div className="innerContainer">
+                            <a href={`https://solana.fm/address/${token.token.tokenMint.toString()}`}>
+                            {token.metadata.json ? (
+                                <img className="imgContainer" src={token.metadata.json.image} />
+                            ) : (
+                                <img
+                                className="imgContainer"
+                                src={
+                                    "https://arweave.net/VASpc3F7nSNF9IvoVtbZfoasmutUowrYLXxNz_rsKK4"
+                                }
+                                />
+                            )}
+                            </a>
+                            <button
+                                className="tokensButton"
+                                onClick={() => {
+                                    const newButtonStates = [...buttonStates];
+                                    buttonStates[index].isSendingBurn = true;
+                                    setButtonStates(newButtonStates);
+                                    sendUseTokenTransaction(token.token.tokenMint, index)
+                                }}
+                                disabled={buttonStates[index]?.isSendingBurn || buttonStates[index]?.isSetBurn || !connected}
+                            >
+                                {buttonStates[index]?.isSentBurn && (
+                                    <h4 style={{ fontSize: "13px" }}>
+                                    <a href={buttonStates[index]?.txnExplorer}>View Txn</a>
+                                    </h4>
+                                )}
+                                {buttonStates[index]?.isSendingBurn && (
+                                    <h4 style={{ fontSize: "13px" }}> Sending </h4>
+                                )}
+                                {!buttonStates[index]?.isSendingBurn && !buttonStates[index]?.isSentBurn && (
+                                    <h4 style={{ fontSize: "13px" }}> BURN </h4>
+                                )}
+                            </button>
+                            <button
+                                className="tokensButton"
+                                onClick={() => {
+                                    const newButtonStates = [...buttonStates];
+                                    newButtonStates[index].isSendingRefund = true;
+                                    setButtonStates(newButtonStates);
+                                    sendRefundTransaction(
+                                        token.token.tokenMint,
+                                        index
+                                    )
+                                }}
+                                disabled={buttonStates[index]?.isSendingRefund && buttonStates[index]?.isSentRefund && !connected}
+                            >
+                                {buttonStates[index]?.isSentRefund && (
+                                    <h4 style={{ fontSize: "13px" }}>
+                                        <a href={buttonStates[index]?.txnExplorer}>View Txn</a>
+                                    </h4>
+                                )}
+                                {buttonStates[index]?.isSendingRefund && (
+                                    <h4 style={{ fontSize: "isSendingRefund" }}> Sending </h4>
+                                )}
+                                {!buttonStates[index]?.isSendingRefund && !buttonStates[index]?.isSentRefund && (
+                                    <h4 style={{ fontSize: "13px" }}> Refund </h4>
+                                )}
+                            </button>
+                        </div>
+                    </SwiperSlide>
+                ))}
+            </Swiper>
         </>
     )
 }

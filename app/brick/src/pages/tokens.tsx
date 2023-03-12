@@ -12,10 +12,32 @@ import { useEffect, useState } from "react";
 
 async function getTokens(publicKey: PublicKey, connection: Connection) {
     const tokensData: TokensWithMetadata[] = []
-    const walletTokens = await connection.getTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID })
+    const tokensOnSale: TokensWithMetadata[] = []
     const metaplex = new Metaplex(connection)
+    const [walletTokens, encodedTokensOnSale] = await Promise.all([
+        connection.getTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID }),
+        connection.getProgramAccounts(
+            BRICK_PROGRAM_ID_PK,
+            {
+                filters: [
+                {
+                    memcmp: {
+                    bytes: bs58.encode(ACCOUNT_DISCRIMINATOR[AccountType.TokenMetadata]),
+                    offset: 0,
+                    },
+                },
+                {
+                    memcmp: {
+                    bytes: publicKey.toString(),
+                    offset: 136, // authority offset, to get tokens this user is selling
+                    },
+                },
+                ],
+            },
+        ),
+    ])
 
-    for (const tokenAccount of walletTokens.value){
+    const tokenPromises = walletTokens.value.map(async (tokenAccount) => {
         try {
             const accountInfo = await connection.getAccountInfo(tokenAccount.pubkey)
             if (accountInfo && accountInfo.data){
@@ -33,34 +55,15 @@ async function getTokens(publicKey: PublicKey, connection: Connection) {
         } catch (e) {
             console.log(e)
         }
-    }
-
-    const tokensOnSale: TokensWithMetadata[] = []
-    const encodedTokensOnSale = await connection.getProgramAccounts(
-        BRICK_PROGRAM_ID_PK,
-        {
-            filters: [
-                {
-                    memcmp: {
-                        bytes: bs58.encode(ACCOUNT_DISCRIMINATOR[AccountType.TokenMetadata]),
-                        offset: 0,
-                    },
-                },
-                {
-                    memcmp: {
-                        bytes: publicKey.toString(),
-                        offset: 136, // authority offset, to get tokens this user is selling
-                    },
-                },
-            ],
-        },
-    )
-
-    for (const tokenAccount of encodedTokensOnSale){
+    })
+    
+    encodedTokensOnSale.forEach(async (tokenAccount) => {
         const token = ACCOUNTS_DATA_LAYOUT[AccountType.TokenMetadata].deserialize(tokenAccount.account.data)[0]
         const metadata = await metaplex.nfts().findByMint({ mintAddress: token.tokenMint }) as Sft
         tokensOnSale.push({ token, metadata })
-    }
+    })
+
+    await Promise.all([...tokenPromises, encodedTokensOnSale])
 
     return { tokensData, tokensOnSale } 
 }
