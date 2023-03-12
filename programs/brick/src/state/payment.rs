@@ -4,6 +4,7 @@ use anchor_lang::prelude::*;
 pub struct Payment {
     pub token_account: Pubkey,
     pub token_mint: Pubkey,
+    pub paid_mint: Pubkey,
     pub seller: Pubkey,
     pub buyer: Pubkey, // this key is used also as seed
     pub price: u32,
@@ -14,5 +15,5 @@ pub struct Payment {
 }
 
 impl Payment {
-    pub const SIZE: usize = 8 + 32 + 32 + 32 + 32 + 4 + 8 + 8 + 1 + 1;
+    pub const SIZE: usize = 8 + 32 + 32 + 32 + 32 + 32 + 4 + 8 + 8 + 1 + 1;
 }
