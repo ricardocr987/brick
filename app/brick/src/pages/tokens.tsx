@@ -1,12 +1,12 @@
 import { HoldingTokens } from "@/components/pages/HoldingTokens";
 import { SellingTokens } from "@/components/pages/SellingTokens";
-import { ACCOUNTS_DATA_LAYOUT, AccountType, TokenMetadataArgs, BRICK_PROGRAM_ID_PK, ACCOUNT_DISCRIMINATOR } from "@/utils";
-import { getTokenPubkey } from "@/utils/helpers";
+import { ACCOUNTS_DATA_LAYOUT, AccountType, TokenMetadataArgs, BRICK_PROGRAM_ID_PK, ACCOUNT_DISCRIMINATOR, PaymentArgs, WithdrawFundsInstructionAccounts, createWithdrawFundsInstruction, AppArgs, withdrawComputeUnits } from "@/utils";
+import { getPaymentPubkey, getPaymentVaultPubkey, getTokenPubkey } from "@/utils/helpers";
 import { TokensWithMetadata } from "@/utils/types";
 import { Metaplex, Sft } from "@metaplex-foundation/js";
-import { AccountLayout, RawAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { AccountLayout, getAccount, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Connection, PublicKey } from "@solana/web3.js";
+import { ComputeBudgetProgram, Connection, PublicKey, Transaction, TransactionInstruction } from "@solana/web3.js";
 import bs58 from "bs58";
 import { useEffect, useState } from "react";
 
@@ -22,14 +22,14 @@ async function getTokens(publicKey: PublicKey, connection: Connection) {
                 filters: [
                 {
                     memcmp: {
-                    bytes: bs58.encode(ACCOUNT_DISCRIMINATOR[AccountType.TokenMetadata]),
-                    offset: 0,
+                        bytes: bs58.encode(ACCOUNT_DISCRIMINATOR[AccountType.TokenMetadata]),
+                        offset: 0,
                     },
                 },
                 {
                     memcmp: {
-                    bytes: publicKey.toString(),
-                    offset: 136, // authority offset, to get tokens this user is selling
+                        bytes: publicKey.toString(),
+                        offset: 136, // authority offset, to get tokens this user is selling
                     },
                 },
                 ],
@@ -68,26 +68,134 @@ async function getTokens(publicKey: PublicKey, connection: Connection) {
     return { tokensData, tokensOnSale } 
 }
 
+async function getWithdrawals(publicKey: PublicKey, connection: Connection) {
+    const availableWithdrawals: (PaymentArgs & { pubkey: PublicKey })[] = []
+    const paymentAccounts = await connection.getProgramAccounts(
+        BRICK_PROGRAM_ID_PK,
+        {
+            filters: [
+                {
+                    memcmp: {
+                        bytes: bs58.encode(ACCOUNT_DISCRIMINATOR[AccountType.Payment]),
+                        offset: 0,
+                    },
+                },
+                {
+                    memcmp: {
+                        bytes: publicKey.toString(),
+                        offset: 104, // authority offset, to get tokens this user is selling
+                    },
+                },
+            ],
+        },
+    )
+
+    const actualTimestamp = Math.floor(Date.now() / 1000)
+    paymentAccounts.map((payment) => {
+        try { // I updated the payment data, cant deserialize the older ones
+            const decodedPayment: PaymentArgs = ACCOUNTS_DATA_LAYOUT[AccountType.Payment].deserialize(payment.account.data)[0]
+            // Number(decodedPayment.refundConsumedAt).toString().length < 13 i fucked up with the timestamp digits and created accounts with ms timestamp
+            if (Number(decodedPayment.refundConsumedAt).toString().length < 13 && Number(decodedPayment.refundConsumedAt) < actualTimestamp) {
+                availableWithdrawals.push({ pubkey: payment.pubkey, ...decodedPayment })
+            }
+        } catch(e) {
+            console.log(e)
+        }
+    })
+
+    return availableWithdrawals
+}
+
 const UserTokensPage = () => {
-    const wallet = useWallet()
+    const { publicKey, sendTransaction, connected } = useWallet()
     const connection = new Connection(process.env.RPC, "confirmed")    
     const [tokens, setTokens] = useState([]);
     const [tokensOnSale, setTokenOnSale] = useState([]);
+    const [withdrawals, setWithdrawal] = useState([]);
+    const [isSent, setSent] = useState(false);
+    const [isSending, setSending] = useState(false);
+    const [txnExplorer, setTxnExplorer] = useState(null);
 
     useEffect(() => {
         const setAccountState = async () => {
-            if (wallet.connected) {
-                const { tokensData, tokensOnSale } = await getTokens(wallet.publicKey, connection)
+            if (connected) {
+                const { tokensData, tokensOnSale } = await getTokens(publicKey, connection)
                 setTokens(tokensData)
                 setTokenOnSale(tokensOnSale)
+                const withdrawals = await getWithdrawals(publicKey, connection)
+                setWithdrawal(withdrawals)
             }
         }
         setAccountState()
-    }, [wallet.connected]);
+    }, [connected]);
+
+    const sendWithdrawalTransaction = async (paymentsAccounts: (PaymentArgs & { pubkey: PublicKey })[]) => {
+        setSending(true);
+        setTxnExplorer(null)
+
+        console.log(paymentsAccounts)
+        const transaction = new Transaction()
+        await Promise.all(paymentsAccounts.map(async (account) => {
+            const encodedTokenAccount = await connection.getAccountInfo(account.tokenAccount)
+            const decodedTokenAccount: TokenMetadataArgs = ACCOUNTS_DATA_LAYOUT[AccountType.TokenMetadata].deserialize(encodedTokenAccount.data)[0]
+            const paymentVault = getPaymentVaultPubkey(account.pubkey)
+            const receiverVault = await getAssociatedTokenAddress(account.paidMint, publicKey)
+            const appAccount = await connection.getAccountInfo(decodedTokenAccount.app)
+            const decodedAppAccount: AppArgs = ACCOUNTS_DATA_LAYOUT[AccountType.App].deserialize(appAccount.data)[0]
+            const appCreatorVault = await getAssociatedTokenAddress(account.paidMint, decodedAppAccount.authority)
+            const accounts: WithdrawFundsInstructionAccounts = {
+                tokenProgram: TOKEN_PROGRAM_ID,
+                authority: publicKey,
+                app: decodedTokenAccount.app,
+                appCreatorVault: appCreatorVault,
+                token: account.tokenAccount,
+                tokenMint: account.tokenMint,
+                receiverVault: receiverVault,
+                buyer: account.buyer,
+                payment: account.pubkey,
+                paymentVault: paymentVault,
+            }
+            transaction.add(createWithdrawFundsInstruction(accounts))
+        }))
+        let blockhash = (await connection.getLatestBlockhash('finalized')).blockhash;
+        transaction.recentBlockhash = blockhash;
+        try {
+            const signature = await sendTransaction(
+                transaction,
+                connection,
+            )
+            setSent(true)
+            setSending(false);
+            setTxnExplorer(`https://solana.fm/tx/${signature}`)
+        } catch(e) {
+            console.log(e)
+            setSending(false);
+        }
+    }
     
     return (
         <div className="tokens">
             <h1 style={{fontSize: "20px"}}>TOKENS LISTED BY YOU</h1>
+            <button
+                className="withdrawButton"
+                onClick={() => {
+                    setSending(true)
+                    sendWithdrawalTransaction(withdrawals)
+                }}
+                disabled={isSending || isSent || !connected}
+            >
+                {isSent && (
+                    <h4 style={{ fontSize: "13px" }}>
+                    <a href={txnExplorer}>View Txn</a>
+                    </h4>
+                )}
+                {isSending && (
+                    <h4 style={{ fontSize: "13px" }}> Sending </h4>
+                )}
+                {!isSending && !isSent && (
+                    <h4 style={{ fontSize: "13px" }}> WITHDRAW </h4>
+                )}
+            </button>
             <div className="tokensRow">
                 <SellingTokens connection={connection} tokens={tokensOnSale}/>
             </div>

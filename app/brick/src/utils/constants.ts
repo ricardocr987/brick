@@ -24,3 +24,5 @@ export const decimalsFromPubkey: Record<string, number> = {
     'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So': 9,
     'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263': 5,
 }
+
+export const withdrawComputeUnits = 4645 + 4645 + 3015 // compute of the two transfers (seller + app creator) + close payment account

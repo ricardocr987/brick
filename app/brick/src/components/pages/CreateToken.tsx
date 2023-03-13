@@ -64,13 +64,14 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
                 offChainId: offChainId1,
                 offChainId2: offChainId2,
                 offChainMetadata: offChainMetadata,
-                refundTimespan: new BN(refundTime),
+                refundTimespan: new BN(Number(refundTime)),
                 tokenPrice: standardizedNumber,// to convert it to the right amount
                 exemplars: Number(exemplars),
                 tokenName: tokenName,
                 tokenSymbol: tokenSymbol,
                 tokenUri: tokenUri,
             }
+            console.log(Number(refundTime))
             try {
                 const transaction = new Transaction().add(
                     createCreateTokenInstruction(accounts, args)
@@ -126,9 +127,9 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
             <div className="innerRow">
                 <label> Select token to be paid </label>  
                 <select className="input" onBlur={handleInputChange} onChange={ e => setAcceptedMint(new PublicKey(mintFromSymbol[e.target.value])) }>  
-                    <option value="USDC"> USDC </option> 
-                    <option value="BONK"> BONK </option>   
                     <option value="SOL"> SOL </option>  
+                    <option value="BONK"> BONK </option>
+                    <option value="USDC"> USDC </option> 
                 </select>
             </div>
             <button className="button" onClick={() => sendCreateTokenTransaction()}>

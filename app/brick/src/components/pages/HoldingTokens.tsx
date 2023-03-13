@@ -1,5 +1,5 @@
 import { ACCOUNTS_DATA_LAYOUT, AccountType, ACCOUNT_DISCRIMINATOR, BRICK_PROGRAM_ID_PK, PaymentArgs } from "@/utils";
-import { getTokenPubkey } from "@/utils/helpers";
+import { getPaymentVaultPubkey, getTokenPubkey } from "@/utils/helpers";
 import { UseTokenInstructionAccounts, createUseTokenInstruction, RefundInstructionAccounts, createRefundInstruction } from "@/utils/solita/instructions";
 import { TokensWithMetadata } from "@/utils/types";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
@@ -18,7 +18,7 @@ type GetPaymentAccount = {
     paidMint: PublicKey
 }
 async function getPaymentAccount(connection: Connection, receiver: PublicKey, tokenMint: PublicKey): Promise<GetPaymentAccount> {
-    const paymentEnconded = await connection.getProgramAccounts(
+    const paymentsEnconded = await connection.getProgramAccounts(
         BRICK_PROGRAM_ID_PK,
         {
             filters: [
@@ -28,25 +28,28 @@ async function getPaymentAccount(connection: Connection, receiver: PublicKey, to
                         offset: 0,
                     },
                 },
-                {
-                    memcmp: {
-                        bytes: receiver.toString(),
-                        offset: 40,
-                    },
-                },
-                {
-                    memcmp: {
-                        bytes: tokenMint.toString(),
-                        offset: 72,
-                    },
-                },
             ],
         },
     )
-    const decoded = ACCOUNTS_DATA_LAYOUT[AccountType.Payment].deserialize(paymentEnconded[0][1].account.data)[0] as PaymentArgs
+    console.log(paymentsEnconded)
+    const actualTimestamp = Math.floor(Date.now() / 1000)
+    const availableRefunds: (PaymentArgs & { pubkey: PublicKey })[] = []
+    paymentsEnconded.map((payment) => {
+        try { // I updated the payment data, cant deserialize the older ones
+            const decodedPayment: PaymentArgs = ACCOUNTS_DATA_LAYOUT[AccountType.Payment].deserialize(payment.account.data)[0]
+            console.log(Number(decodedPayment.refundConsumedAt), actualTimestamp)
+            // Number(decodedPayment.refundConsumedAt).toString().length < 13 i fucked up with the timestamp digits and created accounts with ms timestamp
+            if (Number(decodedPayment.refundConsumedAt).toString().length < 13 && Number(decodedPayment.refundConsumedAt) > actualTimestamp) {
+                console.log(payment.pubkey)
+                availableRefunds.push({ pubkey: payment.pubkey, ...decodedPayment })
+            }
+        } catch(e) {
+            console.log(e)
+        }
+    })
     return {
-        paymentPubKey: paymentEnconded[0][0],
-        paidMint: decoded.paidMint,
+        paymentPubKey: availableRefunds[0].pubkey,
+        paidMint: availableRefunds[0].paidMint,
     }
 }
 
@@ -117,7 +120,7 @@ export const HoldingTokens = ({ connection, tokens }: { connection: Connection, 
         const buyerTokenVault = await getAssociatedTokenAddress(tokenMint, publicKey)
         const { paymentPubKey, paidMint } = await getPaymentAccount(connection, publicKey, tokenMint)
         const receiverVault = await getAssociatedTokenAddress(paidMint, publicKey)
-        const paymentVault = await getAssociatedTokenAddress(tokenMint, paymentPubKey)
+        const paymentVault = getPaymentVaultPubkey(paymentPubKey)
         const accounts: RefundInstructionAccounts = {
             tokenProgram: TOKEN_PROGRAM_ID,
             authority: publicKey,
@@ -139,7 +142,7 @@ export const HoldingTokens = ({ connection, tokens }: { connection: Connection, 
                 connection,
             )
             const newButtonStates = [...buttonStates];
-            newButtonStates[index].isSendingRefund = true;
+            newButtonStates[index].isSentRefund = true;
             newButtonStates[index].isSendingRefund = false;
             newButtonStates[index].txnExplorer = (`https://solana.fm/tx/${signature}`)
             setButtonStates(newButtonStates);
@@ -181,7 +184,7 @@ export const HoldingTokens = ({ connection, tokens }: { connection: Connection, 
                                     setButtonStates(newButtonStates);
                                     sendUseTokenTransaction(token.token.tokenMint, index)
                                 }}
-                                disabled={buttonStates[index]?.isSendingBurn || buttonStates[index]?.isSetBurn || !connected}
+                                disabled={buttonStates[index]?.isSendingBurn || buttonStates[index]?.isSentBurn || !connected}
                             >
                                 {buttonStates[index]?.isSentBurn && (
                                     <h4 style={{ fontSize: "13px" }}>
@@ -214,7 +217,7 @@ export const HoldingTokens = ({ connection, tokens }: { connection: Connection, 
                                     </h4>
                                 )}
                                 {buttonStates[index]?.isSendingRefund && (
-                                    <h4 style={{ fontSize: "isSendingRefund" }}> Sending </h4>
+                                    <h4 style={{ fontSize: "13px" }}> Sending </h4>
                                 )}
                                 {!buttonStates[index]?.isSendingRefund && !buttonStates[index]?.isSentRefund && (
                                     <h4 style={{ fontSize: "13px" }}> Refund </h4>

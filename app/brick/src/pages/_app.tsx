@@ -6,9 +6,9 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 
 const NavItems = [
-  { label: "Home", url: "/", key: 1 },
-  { label: "Apps", url: "/app", key: 2 },
-  { label: "Create", url: "/create", key: 3 },
+  { label: "Intro", url: "/", key: 1 },
+  { label: "Buy", url: "/app", key: 2 },
+  { label: "Sell", url: "/create", key: 3 },
   { label: "My tokens", url: "/tokens", key: 5 },
 ];
 
@@ -16,7 +16,7 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
-        <title>Token Access</title>
+        <title>Brick</title>
         <meta name="description" content="Tokenize any service or off-chain asset" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />

@@ -78,7 +78,7 @@ a {
 .innerContainer {
   margin-left: 25px;
   width: 200px;
-  height: 190px;
+  height: 200px;
   background: radial-gradient(circle, rgba(222,151,0,1) 0%, rgba(214,88,0,1) 100%);
   display: flex;
   justify-content: center;
@@ -163,4 +163,20 @@ a {
 
 .swiper-wrapper {
   width: 100vw;
+}
+
+.withdrawButton {
+  width: 180px;
+  margin-top: -35px;
+  margin-left: 17%;
+  margin-right: 17%;
+  justify-content: center;
+  align-items: center;
+  border-radius: 10px;
+  border: 2px solid rgba(0, 0, 0, 1);
+  background: rgb(195,170,34);
+  background: radial-gradient(circle, rgba(222,151,0,1) 0%, rgba(214,88,0,1) 100%);
+  padding: 10px 20px;
+  text-transform: uppercase;
+  color: white;
 }

@@ -1,21 +1,20 @@
 .home {
-  justify-content: center;
-  margin-top: 300px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  margin-top: 100px;
+  margin-left: 50px;
+  margin-right: 750px;
 }
 
 .home_title {
-  color: #fff;
+  color: Black;
   font-size: 48px;
-  text-align: center;
 }
 
 .home_subtitle {
-  margin-top: 24px;
   color: #fff;
-  font-size: 24;
-  text-align: center;
-  max-width: 600px;
+  font-size: 20px;
+}
+
+.img{
+  margin-top: -400px;/*sorry for this*/
+  margin-left: 750px;
 }

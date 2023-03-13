@@ -80,7 +80,7 @@ const AppPage = () => {
         const tokenAccount = getTokenPubkey(tokenMint)
         const buyerTokenVault = await getAssociatedTokenAddress(tokenMint, publicKey)
         const buyerTransferVault = await getAssociatedTokenAddress(acceptedMint, publicKey)
-        const buyTimestamp = new BN(Date.now())
+        const buyTimestamp = new BN(Math.floor(Date.now() / 1000))
         const payment = getPaymentPubkey(tokenMint, publicKey, Buffer.from(buyTimestamp.toArray('le', 8)))
         const paymentVault = getPaymentVaultPubkey(payment)
         const accounts: BuyTokenInstructionAccounts = {
