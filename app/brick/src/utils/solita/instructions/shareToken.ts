@@ -40,6 +40,7 @@ export const shareTokenStruct = new beet.BeetArgsStruct<
  * @property [_writable_, **signer**] authority
  * @property [_writable_] token
  * @property [_writable_] tokenMint
+ * @property [_writable_] receiver
  * @property [_writable_] receiverVault
  * @category Instructions
  * @category ShareToken
@@ -53,6 +54,7 @@ export type ShareTokenInstructionAccounts = {
   authority: web3.PublicKey
   token: web3.PublicKey
   tokenMint: web3.PublicKey
+  receiver: web3.PublicKey
   receiverVault: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
@@ -115,6 +117,11 @@ export function createShareTokenInstruction(
     },
     {
       pubkey: accounts.tokenMint,
+      isWritable: true,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.receiver,
       isWritable: true,
       isSigner: false,
     },

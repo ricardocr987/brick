@@ -1220,18 +1220,6 @@ describe("brick", () => {
       assert.equal(token.json.uri, tokenUri);
     }
 
-    // initilizes buyer token account to store the token
-    await provider.sendAndConfirm(
-      new anchor.web3.Transaction().add(
-        createAssociatedTokenAccountInstruction(
-          provider.wallet.publicKey,
-          buyerTokenVault,
-          buyerKeypair.publicKey,
-          tokenMint
-        )
-      )
-    );
-
     await program.methods
       .shareToken(exemplarsToShare)
       .accounts({
@@ -1239,6 +1227,7 @@ describe("brick", () => {
         token: tokenPublicKey,
         tokenMint: tokenMint,
         receiverVault: buyerTokenVault,
+        receiver: buyerKeypair.publicKey,
       })
       .signers(
         sellerKeypair instanceof (anchor.Wallet as any) ? [] : [sellerKeypair]
@@ -1264,6 +1253,7 @@ describe("brick", () => {
           token: tokenPublicKey,
           tokenMint: tokenMint,
           receiverVault: buyerTokenVault,
+          receiver: buyerKeypair.publicKey,
         })
         .signers(
           buyerKeypair instanceof (anchor.Wallet as any) ? [] : [buyerKeypair]

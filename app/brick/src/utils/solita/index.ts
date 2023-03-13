@@ -84,6 +84,7 @@ export const ShareTokenAccounts = [
   'authority',
   'token',
   'tokenMint',
+  'receiver',
   'receiverVault',
 ]
 

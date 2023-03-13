@@ -17,4 +17,8 @@
 .img{
   margin-top: -400px;/*sorry for this*/
   margin-left: 750px;
+  height: 320px;
+  width: 500px;
+  border-radius: 6px;
+  border: 3px solid rgba(0, 0, 0, 1);
 }

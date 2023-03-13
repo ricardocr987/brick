@@ -36,7 +36,8 @@ pub struct BuyToken<'info> {
             b"token_mint".as_ref(),
             token.off_chain_id.as_ref(),
         ],
-        bump = token.bumps.mint_bump
+        bump = token.bumps.mint_bump,
+        constraint = buyer_token_vault.mint == token_mint.key() @ ErrorCode::IncorrectReceiverTokenAccount
     )]
     pub token_mint: Account<'info, Mint>,
     #[account(

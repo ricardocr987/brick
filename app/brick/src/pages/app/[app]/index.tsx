@@ -1,4 +1,4 @@
-import { ACCOUNTS_DATA_LAYOUT, AccountType, ACCOUNT_DISCRIMINATOR, BRICK_PROGRAM_ID_PK, BuyTokenInstructionAccounts, BuyTokenInstructionArgs, createBuyTokenInstruction, getAppPubkey, getMetadataPubkey, getPaymentPubkey, getPaymentVaultPubkey, getTokenPubkey, TokenMetadataArgs } from "@/utils";
+import { ACCOUNTS_DATA_LAYOUT, AccountType, ACCOUNT_DISCRIMINATOR, BRICK_PROGRAM_ID_PK, BuyTokenInstructionAccounts, BuyTokenInstructionArgs, createBuyTokenInstruction, getAppPubkey, getMetadataPubkey, getPaymentPubkey, getPaymentVaultPubkey, getTokenPubkey, symbolFromMint, TokenMetadataArgs } from "@/utils";
 import { Connection, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, SYSVAR_RENT_PUBKEY, Transaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import { useRouter } from "next/router"
@@ -8,6 +8,7 @@ import { TokensWithMetadata } from "@/utils/types";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
 import BN from "bn.js";
+import Tooltip from '@mui/material/Tooltip';
 
 async function getTokens(appName: string, connection: Connection): Promise<TokensWithMetadata[]> {
     const tokensData: TokensWithMetadata[] = []
@@ -121,24 +122,26 @@ const AppPage = () => {
     return (
         <div className="apps">
             {tokens.map((token: TokensWithMetadata, index: number) => (
-                <div className="innerContainer" key={token.token.tokenMint.toString()}>
-                    <a href={`https://solana.fm/address/${token.token.tokenMint.toString()}`}>
-                        { token.metadata.json ?  <img className="imgContainer" src={token.metadata.json.image} /> : <img className="imgContainer" src={"https://arweave.net/VASpc3F7nSNF9IvoVtbZfoasmutUowrYLXxNz_rsKK4"} />}
-                    </a>
-                    <button className="tokensButton" onClick={() => sendBuyTokenTransaction(token.token.tokenMint, token.token.sellerConfig.acceptedMint, index)} disabled={buttonStates[index]?.isSending || buttonStates[index]?.isSent || !connected}>
-                        {buttonStates[index]?.isSent && (
-                            <h4 style={{ fontSize: "13px" }}>
-                                <a href={buttonStates[index]?.txnExplorer}>View Txn</a>
-                            </h4>
-                        )}
-                        {buttonStates[index]?.isSending && (
-                            <h4 style={{ fontSize: "13px" }}> Sending </h4>
-                        )}
-                        {!buttonStates[index]?.isSending && !buttonStates[index]?.isSent && (
-                            <h4 style={{ fontSize: "13px" }}> BUY </h4>
-                        )}
-                    </button>
-                </div>
+                <Tooltip title={<>Price: {token.token.sellerConfig.price}<br/>Token: {symbolFromMint[token.token.sellerConfig.acceptedMint.toString()]}<br/>Sold: {token.token.transactionsInfo.sold}</>} enterDelay={500} leaveDelay={200} key={token.token.tokenMint.toString()}>
+                    <div className="innerContainer">
+                        <a href={`https://solana.fm/address/${token.token.tokenMint.toString()}`}>
+                            { token.metadata.json ?  <img className="imgContainer" src={token.metadata.json.image} /> : <img className="imgContainer" src={"https://arweave.net/VASpc3F7nSNF9IvoVtbZfoasmutUowrYLXxNz_rsKK4"} />}
+                        </a>
+                        <button className="tokensButton" onClick={() => sendBuyTokenTransaction(token.token.tokenMint, token.token.sellerConfig.acceptedMint, index)} disabled={buttonStates[index]?.isSending || buttonStates[index]?.isSent || !connected}>
+                            {buttonStates[index]?.isSent && (
+                                <h4 style={{ fontSize: "13px" }}>
+                                    <a href={buttonStates[index]?.txnExplorer}>View Txn</a>
+                                </h4>
+                            )}
+                            {buttonStates[index]?.isSending && (
+                                <h4 style={{ fontSize: "13px" }}> Sending </h4>
+                            )}
+                            {!buttonStates[index]?.isSending && !buttonStates[index]?.isSent && (
+                                <h4 style={{ fontSize: "13px" }}> BUY </h4>
+                            )}
+                        </button>
+                    </div>
+                </Tooltip>
             ))}
         </div>
     )

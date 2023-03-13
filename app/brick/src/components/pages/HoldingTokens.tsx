@@ -1,13 +1,14 @@
-import { ACCOUNTS_DATA_LAYOUT, AccountType, ACCOUNT_DISCRIMINATOR, BRICK_PROGRAM_ID_PK, PaymentArgs } from "@/utils";
+import { ACCOUNTS_DATA_LAYOUT, AccountType, ACCOUNT_DISCRIMINATOR, BRICK_PROGRAM_ID_PK, PaymentArgs, symbolFromMint } from "@/utils";
 import { getPaymentVaultPubkey, getTokenPubkey } from "@/utils/helpers";
 import { UseTokenInstructionAccounts, createUseTokenInstruction, RefundInstructionAccounts, createRefundInstruction } from "@/utils/solita/instructions";
 import { TokensWithMetadata } from "@/utils/types";
+import Tooltip from "@mui/material/Tooltip";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import { useEffect, useState } from "react";
-import SwiperCore, { Navigation, Pagination } from "swiper";
+import SwiperCore, { Navigation } from "swiper";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/swiper-bundle.css";
 
@@ -163,67 +164,69 @@ export const HoldingTokens = ({ connection, tokens }: { connection: Connection, 
             >
                 {tokens.map((token: TokensWithMetadata, index: number) => (
                     <SwiperSlide key={index}>
-                        <div className="innerContainer">
-                            <a href={`https://solana.fm/address/${token.token.tokenMint.toString()}`}>
-                            {token.metadata.json ? (
-                                <img className="imgContainer" src={token.metadata.json.image} />
-                            ) : (
-                                <img
-                                className="imgContainer"
-                                src={
-                                    "https://arweave.net/VASpc3F7nSNF9IvoVtbZfoasmutUowrYLXxNz_rsKK4"
-                                }
-                                />
-                            )}
-                            </a>
-                            <button
-                                className="tokensButton"
-                                onClick={() => {
-                                    const newButtonStates = [...buttonStates];
-                                    buttonStates[index].isSendingBurn = true;
-                                    setButtonStates(newButtonStates);
-                                    sendUseTokenTransaction(token.token.tokenMint, index)
-                                }}
-                                disabled={buttonStates[index]?.isSendingBurn || buttonStates[index]?.isSentBurn || !connected}
-                            >
-                                {buttonStates[index]?.isSentBurn && (
-                                    <h4 style={{ fontSize: "13px" }}>
-                                    <a href={buttonStates[index]?.txnExplorer}>View Txn</a>
-                                    </h4>
+                        <Tooltip title={<>Price: {token.token.sellerConfig.price}<br/>Token: {symbolFromMint[token.token.sellerConfig.acceptedMint.toString()]}<br/>Sold: {token.token.transactionsInfo.sold}</>} enterDelay={500} leaveDelay={200} key={token.token.tokenMint.toString()}>
+                            <div className="innerContainer">
+                                <a href={`https://solana.fm/address/${token.token.tokenMint.toString()}`}>
+                                {token.metadata.json ? (
+                                    <img className="imgContainer" src={token.metadata.json.image} />
+                                ) : (
+                                    <img
+                                    className="imgContainer"
+                                    src={
+                                        "https://arweave.net/VASpc3F7nSNF9IvoVtbZfoasmutUowrYLXxNz_rsKK4"
+                                    }
+                                    />
                                 )}
-                                {buttonStates[index]?.isSendingBurn && (
-                                    <h4 style={{ fontSize: "13px" }}> Sending </h4>
-                                )}
-                                {!buttonStates[index]?.isSendingBurn && !buttonStates[index]?.isSentBurn && (
-                                    <h4 style={{ fontSize: "13px" }}> BURN </h4>
-                                )}
-                            </button>
-                            <button
-                                className="tokensButton"
-                                onClick={() => {
-                                    const newButtonStates = [...buttonStates];
-                                    newButtonStates[index].isSendingRefund = true;
-                                    setButtonStates(newButtonStates);
-                                    sendRefundTransaction(
-                                        token.token.tokenMint,
-                                        index
-                                    )
-                                }}
-                                disabled={buttonStates[index]?.isSendingRefund && buttonStates[index]?.isSentRefund && !connected}
-                            >
-                                {buttonStates[index]?.isSentRefund && (
-                                    <h4 style={{ fontSize: "13px" }}>
+                                </a>
+                                <button
+                                    className="tokensButton"
+                                    onClick={() => {
+                                        const newButtonStates = [...buttonStates];
+                                        buttonStates[index].isSendingBurn = true;
+                                        setButtonStates(newButtonStates);
+                                        sendUseTokenTransaction(token.token.tokenMint, index)
+                                    }}
+                                    disabled={buttonStates[index]?.isSendingBurn || buttonStates[index]?.isSentBurn || !connected}
+                                >
+                                    {buttonStates[index]?.isSentBurn && (
+                                        <h4 style={{ fontSize: "13px" }}>
                                         <a href={buttonStates[index]?.txnExplorer}>View Txn</a>
-                                    </h4>
-                                )}
-                                {buttonStates[index]?.isSendingRefund && (
-                                    <h4 style={{ fontSize: "13px" }}> Sending </h4>
-                                )}
-                                {!buttonStates[index]?.isSendingRefund && !buttonStates[index]?.isSentRefund && (
-                                    <h4 style={{ fontSize: "13px" }}> Refund </h4>
-                                )}
-                            </button>
-                        </div>
+                                        </h4>
+                                    )}
+                                    {buttonStates[index]?.isSendingBurn && (
+                                        <h4 style={{ fontSize: "13px" }}> Sending </h4>
+                                    )}
+                                    {!buttonStates[index]?.isSendingBurn && !buttonStates[index]?.isSentBurn && (
+                                        <h4 style={{ fontSize: "13px" }}> BURN </h4>
+                                    )}
+                                </button>
+                                <button
+                                    className="tokensButton"
+                                    onClick={() => {
+                                        const newButtonStates = [...buttonStates];
+                                        newButtonStates[index].isSendingRefund = true;
+                                        setButtonStates(newButtonStates);
+                                        sendRefundTransaction(
+                                            token.token.tokenMint,
+                                            index
+                                        )
+                                    }}
+                                    disabled={buttonStates[index]?.isSendingRefund && buttonStates[index]?.isSentRefund && !connected}
+                                >
+                                    {buttonStates[index]?.isSentRefund && (
+                                        <h4 style={{ fontSize: "13px" }}>
+                                            <a href={buttonStates[index]?.txnExplorer}>View Txn</a>
+                                        </h4>
+                                    )}
+                                    {buttonStates[index]?.isSendingRefund && (
+                                        <h4 style={{ fontSize: "13px" }}> Sending </h4>
+                                    )}
+                                    {!buttonStates[index]?.isSendingRefund && !buttonStates[index]?.isSentRefund && (
+                                        <h4 style={{ fontSize: "13px" }}> Refund </h4>
+                                    )}
+                                </button>
+                            </div>
+                        </Tooltip>
                     </SwiperSlide>
                 ))}
             </Swiper>

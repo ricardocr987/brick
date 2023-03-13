@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 import SwiperCore, { Navigation } from "swiper";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/swiper-bundle.css";
+import Tooltip from '@mui/material/Tooltip';
+import { symbolFromMint } from "@/utils";
 
 SwiperCore.use([Navigation]);
 export const SellingTokens = ({ connection, tokens }: { connection: Connection, tokens: TokensWithMetadata[] }) => {
@@ -48,6 +50,7 @@ export const SellingTokens = ({ connection, tokens }: { connection: Connection, 
             token: tokenAccount,
             tokenMint: tokenMint,
             receiverVault: receiverVault,
+            receiver: publicKey
         }
         const args: ShareTokenInstructionArgs = {
             exemplars: 1,
@@ -145,92 +148,94 @@ export const SellingTokens = ({ connection, tokens }: { connection: Connection, 
             >
                 {tokens.map((token: TokensWithMetadata, index: number) => (
                     <SwiperSlide key={index}>
-                        <div className="innerContainer" key={index}>
-                            <a href={`https://solana.fm/address/${token.token.tokenMint.toString()}`}>
-                            {token.metadata.json ? (
-                                <img className="imgContainer" src={token.metadata.json.image} />
-                            ) : (
-                                <img
-                                className="imgContainer"
-                                src={
-                                    "https://arweave.net/VASpc3F7nSNF9IvoVtbZfoasmutUowrYLXxNz_rsKK4"
-                                }
-                                />
-                            )}
-                            </a>
-                            <button
-                                className="sellingTokensButton"
-                                onClick={() => {
-                                    const newButtonStates = [...buttonStates];
-                                    newButtonStates[index].isSendingEdit = true;
-                                    setButtonStates(newButtonStates);
-                                    sendEditPriceTransaction(token.token.tokenMint, index)
-                                }}
-                                disabled={buttonStates[index]?.isSendingEdit || buttonStates[index]?.isSentEdit || !connected}
-                            >
-                                {buttonStates[index]?.isSentEdit && (
-                                    <h4 style={{ fontSize: "13px" }}>
-                                        <a href={buttonStates[index]?.txnExplorer}>View Txn</a>
-                                    </h4>
+                        <Tooltip title={<>Price: {token.token.sellerConfig.price}<br/>Token: {symbolFromMint[token.token.sellerConfig.acceptedMint.toString()]}<br/>Sold: {token.token.transactionsInfo.sold}</>} enterDelay={500} leaveDelay={200} key={token.token.tokenMint.toString()}>
+                            <div className="innerContainer" key={index}>
+                                <a href={`https://solana.fm/address/${token.token.tokenMint.toString()}`}>
+                                {token.metadata.json ? (
+                                    <img className="imgContainer" src={token.metadata.json.image} />
+                                ) : (
+                                    <img
+                                    className="imgContainer"
+                                    src={
+                                        "https://arweave.net/VASpc3F7nSNF9IvoVtbZfoasmutUowrYLXxNz_rsKK4"
+                                    }
+                                    />
                                 )}
-                                {buttonStates[index]?.isSendingEdit && (
-                                    <h4 style={{ fontSize: "13px" }}> Sending </h4>
-                                )}
-                                {!buttonStates[index]?.isSendingEdit && !buttonStates[index]?.isSentEdit && (
-                                    <h4 style={{ fontSize: "13px" }}> EDIT </h4>
-                                )}
-                            </button>
-                            <button
-                                className="sellingTokensButton"
-                                onClick={() => {
-                                    const newButtonStates = [...buttonStates];
-                                    newButtonStates[index].isSendingShare = true;
-                                    setButtonStates(newButtonStates);
-                                    sendShareTokenTransaction(
-                                        token.token.tokenMint,
-                                        index
-                                    )
-                                }}
-                                disabled={buttonStates[index]?.isSendingShare || buttonStates[index]?.isSentShare || !connected}
-                            >
-                                {buttonStates[index]?.isSentShare && (
-                                    <h4 style={{ fontSize: "13px" }}>
-                                        <a href={buttonStates[index]?.txnExplorer}>View Txn</a>
-                                    </h4>
-                                )}
-                                {buttonStates[index]?.isSendingShare && (
-                                    <h4 style={{ fontSize: "13px" }}> Sending </h4>
-                                )}
-                                {!buttonStates[index]?.isSendingShare && !buttonStates[index]?.isSentShare && (
-                                    <h4 style={{ fontSize: "13px" }}> SHARE </h4>
-                                )}
-                            </button>
-                            <button
-                                className="sellingTokensButton"
-                                onClick={() => {
-                                    const newButtonStates = [...buttonStates];
-                                    newButtonStates[index].isSendingDelete = true;
-                                    setButtonStates(newButtonStates);
-                                    sendDeleteTokenTransaction(
-                                        token.token.tokenMint,
-                                        index
-                                    )
-                                }}
-                                disabled={buttonStates[index]?.isSendingDelete || buttonStates[index]?.isSentDelete || !connected}
-                            >
-                                {buttonStates[index]?.isSentDelete && (
-                                    <h4 style={{ fontSize: "13px" }}>
-                                        <a href={buttonStates[index]?.txnExplorer}>View Txn</a>
-                                    </h4>
-                                )}
-                                {buttonStates[index]?.isSendingDelete && (
-                                    <h4 style={{ fontSize: "13px" }}> Sending </h4>
-                                )}
-                                {!buttonStates[index]?.isSendingDelete && !buttonStates[index]?.isSentDelete && (
-                                    <h4 style={{ fontSize: "13px" }}> Delete </h4>
-                                )}
-                            </button>
-                        </div>
+                                </a>
+                                <button
+                                    className="sellingTokensButton"
+                                    onClick={() => {
+                                        const newButtonStates = [...buttonStates];
+                                        newButtonStates[index].isSendingEdit = true;
+                                        setButtonStates(newButtonStates);
+                                        sendEditPriceTransaction(token.token.tokenMint, index)
+                                    }}
+                                    disabled={buttonStates[index]?.isSendingEdit || buttonStates[index]?.isSentEdit || !connected}
+                                >
+                                    {buttonStates[index]?.isSentEdit && (
+                                        <h4 style={{ fontSize: "13px" }}>
+                                            <a href={buttonStates[index]?.txnExplorer}>View Txn</a>
+                                        </h4>
+                                    )}
+                                    {buttonStates[index]?.isSendingEdit && (
+                                        <h4 style={{ fontSize: "13px" }}> Sending </h4>
+                                    )}
+                                    {!buttonStates[index]?.isSendingEdit && !buttonStates[index]?.isSentEdit && (
+                                        <h4 style={{ fontSize: "13px" }}> EDIT </h4>
+                                    )}
+                                </button>
+                                <button
+                                    className="sellingTokensButton"
+                                    onClick={() => {
+                                        const newButtonStates = [...buttonStates];
+                                        newButtonStates[index].isSendingShare = true;
+                                        setButtonStates(newButtonStates);
+                                        sendShareTokenTransaction(
+                                            token.token.tokenMint,
+                                            index
+                                        )
+                                    }}
+                                    disabled={buttonStates[index]?.isSendingShare || buttonStates[index]?.isSentShare || !connected}
+                                >
+                                    {buttonStates[index]?.isSentShare && (
+                                        <h4 style={{ fontSize: "13px" }}>
+                                            <a href={buttonStates[index]?.txnExplorer}>View Txn</a>
+                                        </h4>
+                                    )}
+                                    {buttonStates[index]?.isSendingShare && (
+                                        <h4 style={{ fontSize: "13px" }}> Sending </h4>
+                                    )}
+                                    {!buttonStates[index]?.isSendingShare && !buttonStates[index]?.isSentShare && (
+                                        <h4 style={{ fontSize: "13px" }}> SHARE </h4>
+                                    )}
+                                </button>
+                                <button
+                                    className="sellingTokensButton"
+                                    onClick={() => {
+                                        const newButtonStates = [...buttonStates];
+                                        newButtonStates[index].isSendingDelete = true;
+                                        setButtonStates(newButtonStates);
+                                        sendDeleteTokenTransaction(
+                                            token.token.tokenMint,
+                                            index
+                                        )
+                                    }}
+                                    disabled={buttonStates[index]?.isSendingDelete || buttonStates[index]?.isSentDelete || !connected}
+                                >
+                                    {buttonStates[index]?.isSentDelete && (
+                                        <h4 style={{ fontSize: "13px" }}>
+                                            <a href={buttonStates[index]?.txnExplorer}>View Txn</a>
+                                        </h4>
+                                    )}
+                                    {buttonStates[index]?.isSendingDelete && (
+                                        <h4 style={{ fontSize: "13px" }}> Sending </h4>
+                                    )}
+                                    {!buttonStates[index]?.isSendingDelete && !buttonStates[index]?.isSentDelete && (
+                                        <h4 style={{ fontSize: "13px" }}> Delete </h4>
+                                    )}
+                                </button>
+                            </div>
+                        </Tooltip>      
                     </SwiperSlide>
                 ))}
             </Swiper>

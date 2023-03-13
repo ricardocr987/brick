@@ -32,6 +32,7 @@ export default function Home() {
       <h1 className={styles.home_subtitle}>
         - Inventory management
       </h1>
+      <img className={styles.img} src="/intro.png"/>
     </div>
   )
 }

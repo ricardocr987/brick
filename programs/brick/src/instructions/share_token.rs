@@ -35,12 +35,22 @@ pub struct ShareToken<'info> {
             b"token_mint".as_ref(),
             token.off_chain_id.as_ref(),
         ],
-        bump = token.bumps.mint_bump
+        bump = token.bumps.mint_bump,
+        constraint = receiver_vault.mint == token_mint.key() @ ErrorCode::IncorrectReceiverTokenAccount
     )]
     pub token_mint: Account<'info, Mint>,
+    /// CHECK: This is the receiver account, seller will define who will receive the token, its added because is 
+    /// needed to set the authority receiver_vault in the init_if_need
     #[account(
-        mut,
-        constraint = receiver_vault.mint == token_mint.key() @ ErrorCode::IncorrectReceiverTokenAccount
+        mut, 
+        constraint = receiver_vault.owner == receiver.key()
+    )]
+    pub receiver: AccountInfo<'info>,
+    #[account(
+        init_if_needed,
+        payer = authority, 
+        associated_token::mint = token_mint, 
+        associated_token::authority = receiver,
     )]
     pub receiver_vault: Box<Account<'info, TokenAccount>>,
 }

@@ -4,6 +4,7 @@ import { ACCOUNTS_DATA_LAYOUT, AccountType, TokenMetadataArgs, BRICK_PROGRAM_ID_
 import { getPaymentPubkey, getPaymentVaultPubkey, getTokenPubkey } from "@/utils/helpers";
 import { TokensWithMetadata } from "@/utils/types";
 import { Metaplex, Sft } from "@metaplex-foundation/js";
+import Tooltip from "@mui/material/Tooltip";
 import { AccountLayout, getAccount, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { ComputeBudgetProgram, Connection, PublicKey, Transaction, TransactionInstruction } from "@solana/web3.js";
@@ -176,26 +177,30 @@ const UserTokensPage = () => {
     return (
         <div className="tokens">
             <h1 style={{fontSize: "20px"}}>TOKENS LISTED BY YOU</h1>
-            <button
-                className="withdrawButton"
-                onClick={() => {
-                    setSending(true)
-                    sendWithdrawalTransaction(withdrawals)
-                }}
-                disabled={isSending || isSent || !connected}
-            >
-                {isSent && (
-                    <h4 style={{ fontSize: "13px" }}>
-                    <a href={txnExplorer}>View Txn</a>
-                    </h4>
-                )}
-                {isSending && (
-                    <h4 style={{ fontSize: "13px" }}> Sending </h4>
-                )}
-                {!isSending && !isSent && (
-                    <h4 style={{ fontSize: "13px" }}> WITHDRAW </h4>
-                )}
-            </button>
+            {withdrawals.length > 0 && (
+                <Tooltip title={<>Availables withdrawals: {withdrawals.length}</>}>
+                    <button
+                        className="withdrawButton"
+                        onClick={() => {
+                            setSending(true)
+                            sendWithdrawalTransaction(withdrawals)
+                        }}
+                        disabled={isSending || isSent || !connected}
+                    >
+                        {isSent && (
+                            <h4 style={{ fontSize: "13px" }}>
+                            <a href={txnExplorer}>View Txn</a>
+                            </h4>
+                        )}
+                        {isSending && (
+                            <h4 style={{ fontSize: "13px" }}> Sending </h4>
+                        )}
+                        {!isSending && !isSent && (
+                            <h4 style={{ fontSize: "13px" }}> WITHDRAW </h4>
+                        )}
+                    </button>
+                </Tooltip>
+            )}
             <div className="tokensRow">
                 <SellingTokens connection={connection} tokens={tokensOnSale}/>
             </div>
