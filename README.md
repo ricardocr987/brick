@@ -21,8 +21,8 @@ To facilitate the use of Brick in different applications, an indexer is currentl
 Why not doing a simple transfer?:
 - If your use case needs to be sure that some event has happened, indexing/fetching/parsing a transfer is much harder than using a program.
 - Think in a flight ticket, the ticket represents a promise from the seller that you are going to enter to the plane when you do the check-in. In this case this ticket flight could represents the token and the check-in the use_token instruction. Basically, makes sense if what you are tokenizing something that won't be consumed at the same moment that is paid.
-- You want to give refunds in a automatic way.
-- If you creates an app that aims to create a marketplace, witht his protocol a fee could be enforced.
+- You want to give refunds in an automatic way.
+- If you creates an app that aims to create a marketplace, with his protocol a fee could be enforced.
 
 Diagram to understand the logic of the Solana program:
 <img width="900" alt="Screenshot 2023-03-08 at 10 41 57" src="https://user-images.githubusercontent.com/32191898/223678364-6ef7c6df-1add-4cdd-8058-3168379fada2.png">
