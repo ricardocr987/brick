@@ -30,7 +30,7 @@ export const SellingTokens = ({ connection, tokens }: { connection: Connection, 
             setButtonStates(newButtonStates);
         };
         initButtonState()
-    }, [tokens]);
+    }, [tokens, buttonStates]);
       
 
     const sendShareTokenTransaction = async (tokenMint: PublicKey, index: number) => {

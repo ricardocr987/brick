@@ -37,7 +37,6 @@ export const CreateToken = ({ connection }: { connection: Connection }) => {
             setTxnExplorer(null)
             setIsSending(true)
     
-            if (!tokenUri.includes('arweave')) setTokenUri('https://arweave.net/8B4J8VmfJ9-zwWLz8XgGY8V8qa-xEMDAhol411cJjkk')
             const acceptedMintDecimals = decimalsFromPubkey[acceptedMint.toString()]
             const parsedNumber = parseFloat(tokenPrice.replace(/,/g, ''))
             const standardizedNumber = parsedNumber * Math.pow(10, acceptedMintDecimals)

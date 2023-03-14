@@ -59,7 +59,7 @@ export const HoldingTokens = ({ connection, tokens }: { connection: Connection, 
     const [buttonStates, setButtonStates] = useState([]);
 
     useEffect(() => {
-        const initButtonState = async () => {
+        const initButtonState = () => {
             const newButtonStates = tokens.map(() => ({
                 isSendingBurn: false,
                 isSentBurn: false,
@@ -70,7 +70,7 @@ export const HoldingTokens = ({ connection, tokens }: { connection: Connection, 
             setButtonStates(newButtonStates);
         };
         initButtonState()
-    }, [tokens]);
+    }, [tokens, buttonStates]);
 
     const sendUseTokenTransaction = async (tokenMint: PublicKey, index: number) => {
         const newButtonStates = [...buttonStates];
